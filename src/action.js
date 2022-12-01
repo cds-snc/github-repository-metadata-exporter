@@ -4,7 +4,7 @@ const core = require("@actions/core");
 const github = require("@actions/github");
 
 const { postData } = require("./lib/forwarder.js");
-const { queryRepository } = require("./lib/query.js");
+const { queryBranchProtection, queryRepository } = require("./lib/query.js");
 
 const prefix = "GitHubMetadata_";
 
@@ -26,6 +26,21 @@ const action = async () => {
     prefix + "Repository"
   );
   console.log("✅ Repository data sent to Azure Log Analytics");
+
+  // Get branch protection data for main branch
+  const branchProtectionData = await queryBranchProtection(
+    octokit,
+    owner,
+    repo,
+    "main"
+  );
+  postData(
+    logAnalyticsWorkspaceId,
+    logAnalyticsWorkspaceKey,
+    branchProtectionData,
+    prefix + "BranchProtection"
+  );
+  console.log("✅ BranchProtection data sent to Azure Log Analytics");
 };
 
 module.exports = {

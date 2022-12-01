@@ -24121,7 +24121,7 @@ const core = __nccwpck_require__(2186);
 const github = __nccwpck_require__(5438);
 
 const { postData } = __nccwpck_require__(2951);
-const { queryRepository } = __nccwpck_require__(4194);
+const { queryBranchProtection, queryRepository } = __nccwpck_require__(4194);
 
 const prefix = "GitHubMetadata_";
 
@@ -24143,6 +24143,21 @@ const action = async () => {
     prefix + "Repository"
   );
   console.log("✅ Repository data sent to Azure Log Analytics");
+
+  // Get branch protection data for main branch
+  const branchProtectionData = await queryBranchProtection(
+    octokit,
+    owner,
+    repo,
+    "main"
+  );
+  postData(
+    logAnalyticsWorkspaceId,
+    logAnalyticsWorkspaceKey,
+    branchProtectionData,
+    prefix + "BranchProtection"
+  );
+  console.log("✅ BranchProtection data sent to Azure Log Analytics");
 };
 
 module.exports = {
@@ -24233,6 +24248,20 @@ module.exports = {
 /***/ 4194:
 /***/ ((module) => {
 
+const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
+  const response = await octokit.rest.repos.getBranchProtection({
+    branch: branch,
+    owner: owner,
+    repo: repo,
+  });
+  if (response.status !== 200) {
+    throw new Error(
+      `Failed to get branch protection for ${branch} on ${owner}/${repo}: ${response.status}`
+    );
+  }
+  return response.data;
+};
+
 const queryRepository = async (octokit, owner, repo) => {
   const response = await octokit.rest.repos.get({
     owner: owner,
@@ -24247,6 +24276,7 @@ const queryRepository = async (octokit, owner, repo) => {
 };
 
 module.exports = {
+  queryBranchProtection: queryBranchProtection,
   queryRepository: queryRepository,
 };
 
