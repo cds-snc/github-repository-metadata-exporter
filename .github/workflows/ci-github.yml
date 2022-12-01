@@ -26,4 +26,4 @@ jobs:
           npm ci
           node debug/debug.js
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.LOG_ANALYTICS_WORKSPACE_PAT }}
