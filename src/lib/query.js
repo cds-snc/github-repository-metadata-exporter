@@ -1,8 +1,14 @@
 const queryRepository = (octokit, owner, repo) => {
-  return octokit.rest.repos.get({
+  const response = octokit.rest.repos.get({
     owner: owner,
     repo: repo,
   });
+  if (response.status !== 200) {
+    throw new Error(
+      `Error querying repository ${owner}/${repo}: ${response.status}`
+    );
+  }
+  return response.data;
 };
 
 module.exports = {

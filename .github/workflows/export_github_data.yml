@@ -10,5 +10,5 @@ jobs:
         uses: ./
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          log-workspace-id: ${{ secrets.LOG_WORKSPACE_ID }}
-          log-workspace-key: ${{ secrets.LOG_WORKSPACE_KEY }}
+          log-analytics-workspace-id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
+          log-analytics-workspace-key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}

@@ -6,9 +6,11 @@ const github = require("@actions/github");
 const { postData } = require("./lib/forwarder.js");
 const { queryRepository } = require("./lib/query.js");
 
+const prefix = "GitHubMetadata_";
+
 const action = async () => {
-  const logWorkspaceId = core.getInput("log-workspace-id");
-  const logWorkspaceKey = core.getInput("log-workspace-key");
+  const logAnalyticsWorkspaceId = core.getInput("log-analytics-workspace-id");
+  const logAnalyticsWorkspaceKey = core.getInput("log-analytics-workspace-key");
   const token = core.getInput("github-token");
   const octokit = token !== "false" ? github.getOctokit(token) : undefined;
 
@@ -17,9 +19,13 @@ const action = async () => {
 
   // Get repository data
   const repository = await queryRepository(octokit, owner, repo);
-  console.log(repository);
-  //postData(logWorkspaceId, logWorkspaceKey, JSON.stringify(repository), "GitHubRepository");
-  console.log("Repository data sent to Azure Log Analytics");
+  postData(
+    logAnalyticsWorkspaceId,
+    logAnalyticsWorkspaceKey,
+    JSON.stringify(repository),
+    prefix + "Repository"
+  );
+  console.log("✅ Repository data sent to Azure Log Analytics");
 };
 
 module.exports = {

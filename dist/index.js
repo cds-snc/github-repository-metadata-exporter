@@ -13761,9 +13761,11 @@ const github = __nccwpck_require__(5438);
 const { postData } = __nccwpck_require__(2951);
 const { queryRepository } = __nccwpck_require__(4194);
 
+const prefix = "GitHubMetadata_";
+
 const action = async () => {
-  const logWorkspaceId = core.getInput("log-workspace-id");
-  const logWorkspaceKey = core.getInput("log-workspace-key");
+  const logAnalyticsWorkspaceId = core.getInput("log-analytics-workspace-id");
+  const logAnalyticsWorkspaceKey = core.getInput("log-analytics-workspace-key");
   const token = core.getInput("github-token");
   const octokit = token !== "false" ? github.getOctokit(token) : undefined;
 
@@ -13772,9 +13774,13 @@ const action = async () => {
 
   // Get repository data
   const repository = await queryRepository(octokit, owner, repo);
-  console.log(repository);
-  //postData(logWorkspaceId, logWorkspaceKey, JSON.stringify(repository), "GitHubRepository");
-  console.log("Repository data sent to Azure Log Analytics");
+  postData(
+    logAnalyticsWorkspaceId,
+    logAnalyticsWorkspaceKey,
+    JSON.stringify(repository),
+    prefix + "Repository"
+  );
+  console.log("✅ Repository data sent to Azure Log Analytics");
 };
 
 module.exports = {
@@ -13864,10 +13870,16 @@ module.exports = {
 /***/ ((module) => {
 
 const queryRepository = (octokit, owner, repo) => {
-  return octokit.rest.repos.get({
+  const response = octokit.rest.repos.get({
     owner: owner,
     repo: repo,
   });
+  if (response.status !== 200) {
+    throw new Error(
+      `Error querying repository ${owner}/${repo}: ${response.status}`
+    );
+  }
+  return response.data;
 };
 
 module.exports = {
