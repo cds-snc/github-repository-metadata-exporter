@@ -1,0 +1,34 @@
+{
+  "name": "github-repository-metadata-exporter",
+  "version": "1.0.0",
+  "description": "This repository provides some base files for setting up a repository at CDS. Plan is to create more project template for specific technologies:",
+  "main": "index.js",
+  "scripts": {
+    "build": "ncc build src/index.js --source-map --license licenses.txt",
+    "format:check": "prettier --check src",
+    "format:write": "prettier --write src",
+    "lint": "eslint src",
+    "prepare": "husky install",
+    "pre-commit": "npm run format:write && npm run build",
+    "test": ""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cds-snc/github-repository-metadata-exporter.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cds-snc/github-repository-metadata-exporter/issues"
+  },
+  "homepage": "https://github.com/cds-snc/github-repository-metadata-exporter#readme",
+  "devDependencies": {
+    "@vercel/ncc": "0.34.0",
+    "c8": "7.12.0",
+    "eslint": "8.26.0",
+    "eslint-config-prettier": "8.5.0",
+    "eslint-plugin-security": "1.5.0",
+    "husky": "8.0.1",
+    "prettier": "2.7.1"
+  }
+}

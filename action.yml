@@ -1,0 +1,19 @@
+name: GitHub repository metadata exporter
+description: GitHub action to export repository metadata to Sentinel
+author: "Canadian Digital Service"
+
+inputs:
+  log_workspace_id:
+    description: 'Azure Log Workspace ID'
+    required: true
+  log_workspace_key:
+    description: 'Azure Log Workspace Key'
+    required: true
+
+runs:
+  using: "node16"
+  main: "dist/index.js"
+
+branding:
+  icon: "sunrise"
+  color: "white"
