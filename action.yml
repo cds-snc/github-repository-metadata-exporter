@@ -3,11 +3,14 @@ description: GitHub action to export repository metadata to Sentinel
 author: "Canadian Digital Service"
 
 inputs:
-  log_workspace_id:
-    description: 'Azure Log Workspace ID'
+  github-token:
+    description: "GitHub Token used to query data from the GitHub API"
     required: true
-  log_workspace_key:
-    description: 'Azure Log Workspace Key'
+  log-analytics-workspace-id:
+    description: "Azure Log Analytics Workspace ID"
+    required: true
+  log-analytics-workspace-key:
+    description: "Azure Log Analytics Workspace Key"
     required: true
 
 runs:
