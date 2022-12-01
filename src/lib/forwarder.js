@@ -56,7 +56,7 @@ const postData = async (customerId, sharedKey, body, logType) => {
     "x-ms-date": rfc1123date,
   };
 
-  let response = await superagent.post(url).set(headers).send(body).end();
+  let response = await superagent.post(url).set(headers).send(body);
   if (response.status !== 200) {
     throw new Error(
       `Error sending data to Azure Log Analytics: ${response.status}`
