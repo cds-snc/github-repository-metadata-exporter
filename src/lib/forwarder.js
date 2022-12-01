@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const nodeFetch = require("node-fetch");
+const superagent = require("superagent");
 
 const buildSignature = (
   customerId,
@@ -56,12 +56,12 @@ const postData = async (customerId, sharedKey, body, logType) => {
     "x-ms-date": rfc1123date,
   };
 
-  let response = await nodeFetch(url, {
-    method: method,
-    body: body,
-    headers: headers,
-  });
-  return response;
+  let response = superagent.post(url).set(headers).send(body).end();
+  if (response.status !== 200) {
+    throw new Error(
+      `Error sending data to Azure Log Analytics: ${response.status}`
+    );
+  }
 };
 
 module.exports = {
