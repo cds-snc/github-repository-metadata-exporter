@@ -8,8 +8,8 @@ const { action } = require("./action.js");
  * @param {String} err Error message
  */
 const handleError = (err) => {
-    console.error(err);
-    core.setFailed(`Unhandled error: ${err}`);
+  console.error(err);
+  core.setFailed(`Unhandled error: ${err}`);
 };
 
 process.on("unhandledRejection", handleError);
