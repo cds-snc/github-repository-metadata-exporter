@@ -24129,7 +24129,7 @@ const action = async () => {
   const logAnalyticsWorkspaceId = core.getInput("log-analytics-workspace-id");
   const logAnalyticsWorkspaceKey = core.getInput("log-analytics-workspace-key");
   const token = core.getInput("github-token");
-  const octokit = token !== "false" ? github.getOctokit(token) : undefined;
+  const octokit = github.getOctokit(token);
 
   const owner = github.context.repo.owner;
   const repo = github.context.repo.repo;
