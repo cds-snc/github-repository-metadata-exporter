@@ -16,7 +16,7 @@ const run = async () => {
     console.log(repository);
 
     // Get branch protection data for main branch
-    const branchProtectionData = await queryBranchProtection(octokit, owner, repo, "main");
+    const branchProtectionData = await queryBranchProtection(octokit, owner, repo, "feat/branch_protection_data");
     console.log("Branch protection data");
     console.log("======================");
     console.log(branchProtectionData);
