@@ -22,7 +22,7 @@ const action = async () => {
   postData(
     logAnalyticsWorkspaceId,
     logAnalyticsWorkspaceKey,
-    JSON.stringify(repository),
+    repository,
     prefix + "Repository"
   );
   console.log("✅ Repository data sent to Azure Log Analytics");

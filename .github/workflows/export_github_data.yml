@@ -1,12 +1,15 @@
-name: Test GitHub repository metadata exporter
-on: pull_request
+name: GitHub repository metadata exporter
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * *"
 
 jobs:
-  test:
+  export-data:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
-      - name: Test
+      - name: Export Data
         uses: ./
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

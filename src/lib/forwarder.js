@@ -33,6 +33,7 @@ const buildSignature = (
 };
 
 const postData = async (customerId, sharedKey, body, logType) => {
+  body = JSON.stringify(body);
   let method = "POST";
   let contentType = "application/json";
   let resource = "/api/logs";
@@ -59,9 +60,10 @@ const postData = async (customerId, sharedKey, body, logType) => {
   let response = await superagent.post(url).set(headers).send(body);
   if (response.status !== 200) {
     throw new Error(
-      `Error sending data to Azure Log Analytics: ${response.status}`
+      `Error posting data to Azure Log Analytics: ${response.status}`
     );
   }
+  return true;
 };
 
 module.exports = {
