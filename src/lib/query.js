@@ -4,12 +4,18 @@ const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
     owner: owner,
     repo: repo,
   });
-  if (response.status !== 200) {
-    throw new Error(
-      `Failed to get branch protection for ${branch} on ${owner}/${repo}: ${response.status}`
-    );
+  switch (response.status) {
+    case 404:
+      return { branch: branch, enabled: false };
+
+    case 200:
+      return response.data;
+
+    default:
+      throw new Error(
+        `Failed to get branch protection for ${branch} on ${owner}/${repo}: ${response.status}`
+      );
   }
-  return response.data;
 };
 
 const queryRepository = async (octokit, owner, repo) => {
