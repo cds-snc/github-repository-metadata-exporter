@@ -24217,9 +24217,10 @@ const postData = async (customerId, sharedKey, body, logType) => {
   let response = await superagent.post(url).set(headers).send(body);
   if (response.status !== 200) {
     throw new Error(
-      `Error sending data to Azure Log Analytics: ${response.status}`
+      `Error posting data to Azure Log Analytics: ${response.status}`
     );
   }
+  return true;
 };
 
 module.exports = {
