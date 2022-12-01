@@ -1,5 +1,5 @@
-const queryRepository = (octokit, owner, repo) => {
-  const response = octokit.rest.repos.get({
+const queryRepository = async (octokit, owner, repo) => {
+  const response = await octokit.rest.repos.get({
     owner: owner,
     repo: repo,
   });
