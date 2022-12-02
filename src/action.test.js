@@ -2,7 +2,7 @@
 
 const core = require("@actions/core");
 const github = require("@actions/github");
-const { createAppAuth } = require("@octokit/auth-app");
+require("@octokit/auth-app");
 const { when } = require("jest-when");
 
 const { action } = require("./action.js");
