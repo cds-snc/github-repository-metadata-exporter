@@ -12,6 +12,8 @@ jobs:
       - name: Export Data
         uses: ./
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-app-id: ${{ secrets.SRE_BOT_RO_APP_ID }}
+          github-app-installation-id: ${{ secrets.SRE_BOT_RO_INSTALLATION_ID }}
+          github-app-private-key: ${{ secrets.SRE_BOT_RO_PRIVATE_KEY }}
           log-analytics-workspace-id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
           log-analytics-workspace-key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
