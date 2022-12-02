@@ -30,7 +30,43 @@ describe("queryBranchProtection", () => {
       .mockReturnValue(response);
 
     const result = await queryBranchProtection(octokit, owner, repo, branch);
-    expect(result).toEqual(response.data);
+    expect(result).toEqual({
+      id: "123",
+      metadata_owner: "owner",
+      metadata_repo: "repo",
+      metadata_query: "branch_protection",
+    });
+  });
+
+  test("returns branch protection data false if 404", async () => {
+    const octokit = {
+      rest: {
+        repos: {
+          getBranchProtection: jest.fn(),
+        },
+      },
+    };
+
+    const response = {
+      status: 404,
+    };
+
+    const owner = "owner";
+    const repo = "repo";
+    const branch = "main";
+
+    when(octokit.rest.repos.getBranchProtection)
+      .calledWith({ branch: branch, owner: owner, repo: repo })
+      .mockReturnValue(response);
+
+    const result = await queryBranchProtection(octokit, owner, repo, branch);
+    expect(result).toEqual({
+      branch: "main",
+      enabled: false,
+      metadata_owner: "owner",
+      metadata_repo: "repo",
+      metadata_query: "branch_protection",
+    });
   });
 
   test("throws an error if the request fails", async () => {
@@ -87,7 +123,12 @@ describe("queryRepository", () => {
       .mockReturnValue(response);
 
     const result = await queryRepository(octokit, owner, repo);
-    expect(result).toEqual(response.data);
+    expect(result).toEqual({
+      id: "123",
+      metadata_owner: "owner",
+      metadata_repo: "repo",
+      metadata_query: "repository",
+    });
   });
 
   test("throws an error if the request fails", async () => {

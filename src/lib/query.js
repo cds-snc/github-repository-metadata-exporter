@@ -6,10 +6,21 @@ const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
   });
   switch (response.status) {
     case 404:
-      return { branch: branch, enabled: false };
+      return {
+        metadata_owner: owner,
+        metadata_repo: repo,
+        metadata_query: "branch_protection",
+        branch: branch,
+        enabled: false,
+      };
 
     case 200:
-      return response.data;
+      return {
+        metadata_owner: owner,
+        metadata_repo: repo,
+        metadata_query: "branch_protection",
+        ...response.data,
+      };
 
     default:
       throw new Error(
@@ -28,7 +39,12 @@ const queryRepository = async (octokit, owner, repo) => {
       `Error querying repository ${owner}/${repo}: ${response.status}`
     );
   }
-  return response.data;
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "repository",
+    ...response.data,
+  };
 };
 
 module.exports = {

@@ -2,6 +2,7 @@
 
 const core = require("@actions/core");
 const github = require("@actions/github");
+const { createAppAuth } = require("@octokit/auth-app");
 
 const { postData } = require("./lib/forwarder.js");
 const { queryBranchProtection, queryRepository } = require("./lib/query.js");
@@ -11,8 +12,22 @@ const prefix = "GitHubMetadata_";
 const action = async () => {
   const logAnalyticsWorkspaceId = core.getInput("log-analytics-workspace-id");
   const logAnalyticsWorkspaceKey = core.getInput("log-analytics-workspace-key");
-  const token = core.getInput("github-token");
-  const octokit = github.getOctokit(token);
+
+  const githubAppId = core.getInput("github-app-id");
+  const githubAppInstallationId = core.getInput("github-app-installation-id");
+  const githubAppPrivateKey = core.getInput("github-app-private-key");
+
+  const auth = createAppAuth({
+    appId: githubAppId,
+    privateKey: githubAppPrivateKey,
+  });
+
+  const installationAuthentication = await auth({
+    type: "installation",
+    installationId: githubAppInstallationId,
+  });
+
+  const octokit = github.getOctokit(installationAuthentication.token);
 
   const owner = github.context.repo.owner;
   const repo = github.context.repo.repo;
