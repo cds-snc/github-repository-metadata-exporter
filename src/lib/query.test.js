@@ -130,7 +130,7 @@ describe("queryCommitCount", () => {
       commit_count: 3,
       metadata_owner: "owner",
       metadata_repo: "repo",
-      metadata_query: "repository",
+      metadata_query: "commit_count",
       metadata_time_in_days: 60,
       metadata_since: expect.any(String),
     });

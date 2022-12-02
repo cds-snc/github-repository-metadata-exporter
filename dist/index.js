@@ -33789,7 +33789,7 @@ const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {
   return {
     metadata_owner: owner,
     metadata_repo: repo,
-    metadata_query: "repository",
+    metadata_query: "commit_count",
     metadata_time_in_days: timeInDays,
     metadata_since: pastDate,
     commit_count: response.data.length,
