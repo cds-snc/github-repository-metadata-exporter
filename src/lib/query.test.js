@@ -35,6 +35,7 @@ describe("queryBranchProtection", () => {
       metadata_owner: "owner",
       metadata_repo: "repo",
       metadata_query: "branch_protection",
+      metadata_branch: "main",
     });
   });
 
@@ -61,7 +62,7 @@ describe("queryBranchProtection", () => {
 
     const result = await queryBranchProtection(octokit, owner, repo, branch);
     expect(result).toEqual({
-      branch: "main",
+      metadata_branch: "main",
       enabled: false,
       metadata_owner: "owner",
       metadata_repo: "repo",
