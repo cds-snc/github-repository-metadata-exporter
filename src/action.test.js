@@ -2,12 +2,13 @@
 
 const core = require("@actions/core");
 const github = require("@actions/github");
+require("@octokit/auth-app");
 const { when } = require("jest-when");
 
 const { action } = require("./action.js");
 
 const { postData } = require("./lib/forwarder.js");
-const { queryRepository } = require("./lib/query.js");
+const { queryBranchProtection, queryRepository } = require("./lib/query.js");
 
 jest.mock("@actions/core");
 jest.mock("@actions/github", () => ({
@@ -18,6 +19,12 @@ jest.mock("@actions/github", () => ({
     },
   },
   getOctokit: jest.fn(),
+}));
+jest.mock("@octokit/auth-app", () => ({
+  createAppAuth: () => () => ({
+    type: "app",
+    token: "token",
+  }),
 }));
 jest.mock("./lib/forwarder.js");
 jest.mock("./lib/query.js");
@@ -33,20 +40,28 @@ describe("action", () => {
     };
 
     when(core.getInput)
-      .calledWith("github-token")
-      .mockReturnValue("github-token");
-    when(core.getInput)
       .calledWith("log-analytics-workspace-id")
       .mockReturnValue("log-analytics-workspace-id");
     when(core.getInput)
       .calledWith("log-analytics-workspace-key")
       .mockReturnValue("log-analytics-workspace-key");
+    when(core.getInput)
+      .calledWith("github-app-id")
+      .mockReturnValue("github-app-id");
+    when(core.getInput)
+      .calledWith("github-app-installation-id")
+      .mockReturnValue("github-app-installation-id");
+    when(core.getInput)
+      .calledWith("github-app-private-key")
+      .mockReturnValue("github-app-private-key");
 
-    when(github.getOctokit)
-      .calledWith("github-token")
-      .mockReturnValue("octokit");
+    when(github.getOctokit).calledWith("token").mockReturnValue("octokit");
+
     when(queryRepository)
       .calledWith("octokit", "owner", "repo")
+      .mockReturnValue(sampleData);
+    when(queryBranchProtection)
+      .calledWith("octokit", "owner", "repo", "main")
       .mockReturnValue(sampleData);
 
     await action();
@@ -57,6 +72,19 @@ describe("action", () => {
       "log-analytics-workspace-key",
       sampleData,
       "GitHubMetadata_Repository"
+    );
+
+    expect(queryBranchProtection).toHaveBeenCalledWith(
+      "octokit",
+      "owner",
+      "repo",
+      "main"
+    );
+    expect(postData).toHaveBeenCalledWith(
+      "log-analytics-workspace-id",
+      "log-analytics-workspace-key",
+      sampleData,
+      "GitHubMetadata_BranchProtection"
     );
   });
 });
