@@ -2,7 +2,11 @@
 
 const { when } = require("jest-when");
 
-const { queryBranchProtection, queryRepository } = require("./query.js");
+const {
+  queryBranchProtection,
+  queryCommitCount,
+  queryRepository,
+} = require("./query.js");
 
 describe("queryBranchProtection", () => {
   test("returns branch protection data if the request succeeds", async () => {
@@ -95,6 +99,65 @@ describe("queryBranchProtection", () => {
       queryBranchProtection(octokit, owner, repo, branch)
     ).rejects.toThrow(
       `Failed to get branch protection for ${branch} on ${owner}/${repo}: ${response.status}`
+    );
+  });
+});
+
+describe("queryCommitCount", () => {
+  test("returns commit count data if the request succeeds", async () => {
+    const octokit = {
+      rest: {
+        repos: {
+          listCommits: jest.fn(),
+        },
+      },
+    };
+
+    const response = {
+      status: 200,
+      data: [1, 2, 3],
+    };
+
+    const owner = "owner";
+    const repo = "repo";
+
+    when(octokit.rest.repos.listCommits)
+      .calledWith({ owner: owner, repo: repo, since: expect.anything() })
+      .mockReturnValue(response);
+
+    const result = await queryCommitCount(octokit, owner, repo);
+    expect(result).toEqual({
+      commit_count: 3,
+      metadata_owner: "owner",
+      metadata_repo: "repo",
+      metadata_query: "commit_count",
+      metadata_time_in_days: 60,
+      metadata_since: expect.any(String),
+    });
+  });
+
+  test("throws an error if the request fails", async () => {
+    const octokit = {
+      rest: {
+        repos: {
+          listCommits: jest.fn(),
+        },
+      },
+    };
+
+    const response = {
+      status: 400,
+    };
+
+    const owner = "owner";
+    const repo = "repo";
+
+    when(octokit.rest.repos.listCommits)
+      .calledWith({ owner: owner, repo: repo, since: expect.anything() })
+      .mockReturnValue(response);
+
+    await expect(queryCommitCount(octokit, owner, repo)).rejects.toThrow(
+      `Error querying commit count for repository ${owner}/${repo}: ${response.status}`
     );
   });
 });

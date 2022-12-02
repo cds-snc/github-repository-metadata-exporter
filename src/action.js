@@ -5,7 +5,11 @@ const github = require("@actions/github");
 const { createAppAuth } = require("@octokit/auth-app");
 
 const { postData } = require("./lib/forwarder.js");
-const { queryBranchProtection, queryRepository } = require("./lib/query.js");
+const {
+  queryBranchProtection,
+  queryCommitCount,
+  queryRepository,
+} = require("./lib/query.js");
 
 const prefix = "GitHubMetadata_";
 
@@ -56,6 +60,16 @@ const action = async () => {
     prefix + "BranchProtection"
   );
   console.log("✅ BranchProtection data sent to Azure Log Analytics");
+
+  // Get branch protection data for main branch
+  const commitCountData = await queryCommitCount(octokit, owner, repo);
+  postData(
+    logAnalyticsWorkspaceId,
+    logAnalyticsWorkspaceKey,
+    commitCountData,
+    prefix + "CommitCount"
+  );
+  console.log("✅ CommitCount data sent to Azure Log Analytics");
 };
 
 module.exports = {

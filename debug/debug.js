@@ -3,7 +3,7 @@
 const github = require("@actions/github");
 const { createAppAuth } = require("@octokit/auth-app");
 
-const { queryBranchProtection, queryRepository } = require("../src/lib/query.js");
+const { queryBranchProtection, queryCommitCount, queryRepository } = require("../src/lib/query.js");
 
 const run = async () => {
 
@@ -37,6 +37,12 @@ const run = async () => {
     console.log("Branch protection data");
     console.log("======================");
     console.log(branchProtectionData);
+
+    // Get commit count data
+    const commitCountData = await queryCommitCount(octokit, owner, repo);
+    console.log("Commit count data");
+    console.log("======================");
+    console.log(commitCountData);
 
 };
 
