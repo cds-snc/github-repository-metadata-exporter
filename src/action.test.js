@@ -8,7 +8,11 @@ const { when } = require("jest-when");
 const { action } = require("./action.js");
 
 const { postData } = require("./lib/forwarder.js");
-const { queryBranchProtection, queryRepository } = require("./lib/query.js");
+const {
+  queryBranchProtection,
+  queryCommitCount,
+  queryRepository,
+} = require("./lib/query.js");
 
 jest.mock("@actions/core");
 jest.mock("@actions/github", () => ({
@@ -63,6 +67,9 @@ describe("action", () => {
     when(queryBranchProtection)
       .calledWith("octokit", "owner", "repo", "main")
       .mockReturnValue(sampleData);
+    when(queryCommitCount)
+      .calledWith("octokit", "owner", "repo")
+      .mockReturnValue(sampleData);
 
     await action();
 
@@ -85,6 +92,14 @@ describe("action", () => {
       "log-analytics-workspace-key",
       sampleData,
       "GitHubMetadata_BranchProtection"
+    );
+
+    expect(queryCommitCount).toHaveBeenCalledWith("octokit", "owner", "repo");
+    expect(postData).toHaveBeenCalledWith(
+      "log-analytics-workspace-id",
+      "log-analytics-workspace-key",
+      sampleData,
+      "GitHubMetadata_CommitCount"
     );
   });
 });
