@@ -33736,7 +33736,7 @@ const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
         metadata_owner: owner,
         metadata_repo: repo,
         metadata_query: "branch_protection",
-        branch: branch,
+        metadata_branch: branch,
         enabled: false,
       };
 
@@ -33745,6 +33745,7 @@ const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
         metadata_owner: owner,
         metadata_repo: repo,
         metadata_query: "branch_protection",
+        metadata_branch: branch,
         ...response.data,
       };
 
