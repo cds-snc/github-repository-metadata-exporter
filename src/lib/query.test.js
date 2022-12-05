@@ -142,7 +142,7 @@ describe("queryCommitCount", () => {
     const octokit = {
       paginate: () =>
         new Promise((resolve) => {
-          resolve(response);
+          resolve(response.data);
         }),
       rest: {
         repos: {
