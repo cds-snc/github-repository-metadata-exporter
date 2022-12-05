@@ -26,3 +26,9 @@ jobs:
       - run: npm run format:check
       - run: npm audit
       - run: npm test
+      - run: npm run build-test
+      - name: Check if src has been compiled
+        run: |
+          DIR1=dist
+          DIR2=dist-test
+          diff -r $DIR1 $DIR2 || exit 1

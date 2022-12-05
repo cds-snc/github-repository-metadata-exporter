@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "ncc build src/index.js --source-map --license licenses.txt",
+    "build-test": "ncc build src/index.js --source-map --license licenses.txt -o dist-test",
     "format:check": "prettier --check src",
     "format:write": "prettier --write src",
     "lint": "eslint src",
