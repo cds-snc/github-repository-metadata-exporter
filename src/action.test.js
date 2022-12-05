@@ -12,6 +12,7 @@ const {
   queryBranchProtection,
   queryCommitCount,
   queryRepository,
+  queryRequiredFiles,
 } = require("./lib/query.js");
 
 jest.mock("@actions/core");
@@ -70,6 +71,9 @@ describe("action", () => {
     when(queryCommitCount)
       .calledWith("octokit", "owner", "repo")
       .mockReturnValue(sampleData);
+    when(queryRequiredFiles)
+      .calledWith("owner", "repo")
+      .mockReturnValue(sampleData);
 
     await action();
 
@@ -100,6 +104,14 @@ describe("action", () => {
       "log-analytics-workspace-key",
       sampleData,
       "GitHubMetadata_CommitCount"
+    );
+
+    expect(queryRequiredFiles).toHaveBeenCalledWith("owner", "repo");
+    expect(postData).toHaveBeenCalledWith(
+      "log-analytics-workspace-id",
+      "log-analytics-workspace-key",
+      sampleData,
+      "GitHubMetadata_RequiredFiles"
     );
   });
 });

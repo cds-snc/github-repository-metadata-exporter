@@ -6,6 +6,7 @@ const {
   queryBranchProtection,
   queryCommitCount,
   queryRepository,
+  queryRequiredFiles,
 } = require("./query.js");
 
 describe("queryBranchProtection", () => {
@@ -218,5 +219,24 @@ describe("queryRepository", () => {
     await expect(queryRepository(octokit, owner, repo)).rejects.toThrow(
       `Error querying repository ${owner}/${repo}: ${response.status}`
     );
+  });
+});
+
+describe("queryRequiredFiles", () => {
+  test("returns repository data if the app has access", async () => {
+    const owner = "owner";
+    const repo = "repo";
+
+    const result = await queryRequiredFiles(owner, repo);
+    expect(result).toEqual({
+      "CODE_OF_CONDUCT.md": false,
+      "CONTRIBUTING.md": false,
+      LICENSE: true,
+      "README.md": true,
+      "SECURITY.md": false,
+      metadata_owner: "owner",
+      metadata_repo: "repo",
+      metadata_query: "required_files",
+    });
   });
 });

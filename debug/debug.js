@@ -3,7 +3,7 @@
 const github = require("@actions/github");
 const { createAppAuth } = require("@octokit/auth-app");
 
-const { queryBranchProtection, queryCommitCount, queryRepository } = require("../src/lib/query.js");
+const { queryBranchProtection, queryCommitCount, queryRepository, queryRequiredFiles } = require("../src/lib/query.js");
 
 const run = async () => {
 
@@ -44,6 +44,11 @@ const run = async () => {
     console.log("======================");
     console.log(commitCountData);
 
+    // Get required files data
+    const requiredFilesData = await queryRequiredFiles(owner, repo);
+    console.log("Required files data");
+    console.log("======================");
+    console.log(requiredFilesData);
 };
 
 run();

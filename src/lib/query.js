@@ -1,3 +1,5 @@
+const fs = require("fs");
+
 const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
   const response = await octokit.rest.repos.getBranchProtection({
     branch: branch,
@@ -74,8 +76,35 @@ const queryRepository = async (octokit, owner, repo) => {
   };
 };
 
+const queryRequiredFiles = async (owner, repo) => {
+  // Check if files exist on the current branch
+
+  const files = [
+    "README.md",
+    "LICENSE",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+  ];
+
+  let inventory = {};
+  for (let file of files) {
+    // To prevent the below path traversal attack, we explicitly define the
+    // path to the file we want to check vs. passing them into the function
+    //eslint-disable-next-line security/detect-non-literal-fs-filename
+    inventory[String(file)] = fs.existsSync(file);
+  }
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "required_files",
+    ...inventory,
+  };
+};
+
 module.exports = {
   queryBranchProtection: queryBranchProtection,
   queryCommitCount: queryCommitCount,
   queryRepository: queryRepository,
+  queryRequiredFiles: queryRequiredFiles,
 };
