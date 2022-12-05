@@ -33587,6 +33587,7 @@ const {
   queryBranchProtection,
   queryCommitCount,
   queryRepository,
+  queryRequiredFiles,
 } = __nccwpck_require__(4194);
 
 const prefix = "GitHubMetadata_";
@@ -33648,6 +33649,16 @@ const action = async () => {
     prefix + "CommitCount"
   );
   console.log("✅ CommitCount data sent to Azure Log Analytics");
+
+  // Get required files data for current branch
+  const requiredFilesData = await queryRequiredFiles(owner, repo);
+  postData(
+    logAnalyticsWorkspaceId,
+    logAnalyticsWorkspaceKey,
+    requiredFilesData,
+    prefix + "RequiredFiles"
+  );
+  console.log("✅ RequiredF data sent to Azure Log Analytics");
 };
 
 module.exports = {
@@ -33736,7 +33747,9 @@ module.exports = {
 /***/ }),
 
 /***/ 4194:
-/***/ ((module) => {
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const fs = __nccwpck_require__(7147);
 
 const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
   const response = await octokit.rest.repos.getBranchProtection({
@@ -33814,10 +33827,38 @@ const queryRepository = async (octokit, owner, repo) => {
   };
 };
 
+const queryRequiredFiles = async (owner, repo) => {
+  // Check if files exist on the current branch
+
+  const files = [
+    "README.md",
+    "LICENSE",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+  ];
+
+  let inventory = {};
+  for (let file of files) {
+    try {
+      inventory[String(file)] = fs.existsSync(file);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "required_files",
+    ...inventory,
+  };
+};
+
 module.exports = {
   queryBranchProtection: queryBranchProtection,
   queryCommitCount: queryCommitCount,
   queryRepository: queryRepository,
+  queryRequiredFiles: queryRequiredFiles,
 };
 
 

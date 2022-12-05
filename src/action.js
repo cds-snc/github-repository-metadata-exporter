@@ -9,6 +9,7 @@ const {
   queryBranchProtection,
   queryCommitCount,
   queryRepository,
+  queryRequiredFiles,
 } = require("./lib/query.js");
 
 const prefix = "GitHubMetadata_";
@@ -70,6 +71,16 @@ const action = async () => {
     prefix + "CommitCount"
   );
   console.log("✅ CommitCount data sent to Azure Log Analytics");
+
+  // Get required files data for current branch
+  const requiredFilesData = await queryRequiredFiles(owner, repo);
+  postData(
+    logAnalyticsWorkspaceId,
+    logAnalyticsWorkspaceKey,
+    requiredFilesData,
+    prefix + "RequiredFiles"
+  );
+  console.log("✅ RequiredF data sent to Azure Log Analytics");
 };
 
 module.exports = {
