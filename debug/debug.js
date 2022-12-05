@@ -45,7 +45,7 @@ const run = async () => {
     console.log(commitCountData);
 
     // Get required files data
-    const requiredFilesData = await queryRequiredFiles(octokit, owner, repo);
+    const requiredFilesData = await queryRequiredFiles(owner, repo);
     console.log("Required files data");
     console.log("======================");
     console.log(requiredFilesData);
