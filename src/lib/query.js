@@ -41,7 +41,7 @@ const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {
   let commits = [];
 
   // Loop though all the pages of commits
-  octokit
+  await octokit
     .paginate(octokit.rest.repos.listCommits, {
       owner: owner,
       repo: repo,
