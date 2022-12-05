@@ -33792,19 +33792,14 @@ const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {
   let commits = [];
 
   // Loop though all the pages of commits
-  octokit
+  await octokit
     .paginate(octokit.rest.repos.listCommits, {
       owner: owner,
       repo: repo,
       since: pastDate,
     })
-    .then((response) => {
-      if (response.status !== 200) {
-        throw new Error(
-          `Error querying commit count for repository ${owner}/${repo}: ${response.status}`
-        );
-      }
-      for (const commit of response.data) {
+    .then((listedCommits) => {
+      for (const commit of listedCommits) {
         commits.push({
           author: commit.author.login,
           date: commit.commit.author.date,
