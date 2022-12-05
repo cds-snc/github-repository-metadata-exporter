@@ -33658,7 +33658,7 @@ const action = async () => {
     requiredFilesData,
     prefix + "RequiredFiles"
   );
-  console.log("✅ RequiredF data sent to Azure Log Analytics");
+  console.log("✅ RequiredFiles data sent to Azure Log Analytics");
 };
 
 module.exports = {
@@ -33840,11 +33840,10 @@ const queryRequiredFiles = async (owner, repo) => {
 
   let inventory = {};
   for (let file of files) {
-    try {
-      inventory[String(file)] = fs.existsSync(file);
-    } catch (err) {
-      console.error(err);
-    }
+    // To prevent the below path traversal attack, we explicitly define the
+    // path to the file we want to check vs. passing them into the function
+    //eslint-disable-next-line security/detect-non-literal-fs-filename
+    inventory[String(file)] = fs.existsSync(file);
   }
   return {
     metadata_owner: owner,
