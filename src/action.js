@@ -80,7 +80,7 @@ const action = async () => {
     requiredFilesData,
     prefix + "RequiredFiles"
   );
-  console.log("✅ RequiredF data sent to Azure Log Analytics");
+  console.log("✅ RequiredFiles data sent to Azure Log Analytics");
 };
 
 module.exports = {
