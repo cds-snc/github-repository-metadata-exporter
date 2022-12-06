@@ -32981,13 +32981,26 @@ const queryDependabotAlerts = async (octokit, owner, repo) => {
 
   // Loop though all the pages of alerts
   await octokit
-    .paginate(octokit.rest.codeScanning.listAlertsForRepo, {
+    .paginate(octokit.rest.dependabot.listAlertsForRepo, {
       owner: owner,
       repo: repo,
       state: "open",
     })
     .then((listedAlerts) => {
-      alerts = alerts.concat(listedAlerts);
+      for (const alert of listedAlerts) {
+        if ("number" in alert) {
+          alerts.push({
+            id: alert.number,
+            dependency: alert.dependency,
+            ghsa_id: alert.security_advisory.ghsa_id,
+            cve_id: alert.security_advisory.cve_id,
+            severity: alert.security_advisory.severity,
+            cvss: alert.security_advisory.cvss,
+            cwes: alert.security_advisory.cwes,
+            created_at: alert.created_at,
+          });
+        }
+      }
     });
 
   return {
