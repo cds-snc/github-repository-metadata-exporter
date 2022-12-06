@@ -76,7 +76,6 @@ const queryDependabotAlerts = async (octokit, owner, repo) => {
     .paginate(octokit.rest.dependabot.listAlertsForRepo, {
       owner: owner,
       repo: repo,
-      state: "open",
     })
     .then((listedAlerts) => {
       console.log(listedAlerts);
