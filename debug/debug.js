@@ -3,7 +3,7 @@
 const github = require("@actions/github");
 const { createAppAuth } = require("@octokit/auth-app");
 
-const { queryBranchProtection, queryCommitCount, queryDependabotAlerts, queryRepository, queryRequiredFiles } = require("../src/lib/query.js");
+const { queryBranchProtection, queryCodeScanningAlerts, queryCommitCount, queryDependabotAlerts, queryRepository, queryRequiredFiles } = require("../src/lib/query.js");
 
 const run = async () => {
 
@@ -55,6 +55,12 @@ const run = async () => {
     console.log("Dependabot alerts data");
     console.log("======================");
     console.log(dependabotAlertsData);
+
+    // Get code scanning alerts data
+    const codeScanningAlertsData = await queryCodeScanningAlerts(octokit, owner, repo);
+    console.log("Code scanning alerts data");
+    console.log("======================");
+    console.log(codeScanningAlertsData);
 
 };
 

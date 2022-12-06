@@ -32,6 +32,28 @@ const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
   }
 };
 
+const queryCodeScanningAlerts = async (octokit, owner, repo) => {
+  let alerts = [];
+
+  // Loop though all the pages of alerts
+  await octokit
+    .paginate(octokit.rest.codeScanning.listAlertsForRepo, {
+      owner: owner,
+      repo: repo,
+      state: "open",
+    })
+    .then((listedAlerts) => {
+      alerts = alerts.concat(listedAlerts);
+    });
+
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "code_scanning_alerts",
+    code_scanning_alerts: alerts,
+  };
+};
+
 const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {
   let date = new Date();
   let pastDate = new Date(
@@ -149,6 +171,7 @@ const queryRequiredFiles = async (owner, repo) => {
 
 module.exports = {
   queryBranchProtection: queryBranchProtection,
+  queryCodeScanningAlerts: queryCodeScanningAlerts,
   queryCommitCount: queryCommitCount,
   queryDependabotAlerts: queryDependabotAlerts,
   queryRepository: queryRepository,

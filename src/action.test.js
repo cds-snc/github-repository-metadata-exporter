@@ -10,6 +10,7 @@ const { action } = require("./action.js");
 const { postData } = require("./lib/forwarder.js");
 const {
   queryBranchProtection,
+  queryCodeScanningAlerts,
   queryCommitCount,
   queryDependabotAlerts,
   queryRepository,
@@ -79,6 +80,19 @@ describe("action", () => {
       .calledWith("octokit", "owner", "repo")
       .mockReturnValue(sampleData);
 
+    const dataSize = 75;
+    const chunkSize = 20;
+    const codeScanningData = {
+      metadata_owner: "cds-snc",
+      metadata_repo: "github-repository-metadata-exporter",
+      metadata_query: "code_scanning_alerts",
+      code_scanning_alerts: Array.from(Array(dataSize).keys()),
+    };
+
+    when(queryCodeScanningAlerts)
+      .calledWith("octokit", "owner", "repo")
+      .mockReturnValue(codeScanningData);
+
     await action();
 
     expect(queryRepository).toHaveBeenCalledWith("octokit", "owner", "repo");
@@ -125,5 +139,23 @@ describe("action", () => {
       sampleData,
       "GitHubMetadata_DependabotAlerts"
     );
+
+    expect(queryCodeScanningAlerts).toHaveBeenCalled();
+    for (let index = 0; index < dataSize; index += chunkSize) {
+      expect(postData).toHaveBeenCalledWith(
+        "log-analytics-workspace-id",
+        "log-analytics-workspace-key",
+        {
+          metadata_owner: "cds-snc",
+          metadata_repo: "github-repository-metadata-exporter",
+          metadata_query: "code_scanning_alerts",
+          code_scanning_alerts: codeScanningData.code_scanning_alerts.slice(
+            index,
+            index + chunkSize
+          ),
+        },
+        "GitHubMetadata_CodeScanningAlerts"
+      );
+    }
   });
 });

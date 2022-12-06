@@ -4,6 +4,7 @@ const { when } = require("jest-when");
 
 const {
   queryBranchProtection,
+  queryCodeScanningAlerts,
   queryCommitCount,
   queryDependabotAlerts,
   queryRepository,
@@ -180,6 +181,38 @@ describe("queryCommitCount", () => {
       metadata_query: "commit_count",
       metadata_time_in_days: 60,
       metadata_since: expect.any(String),
+    });
+  });
+});
+
+describe("queryCodeScanningAlerts", () => {
+  test("returns code scanning alerts data if the request succeeds", async () => {
+    const response = {
+      status: 200,
+      data: [{ number: 1 }, { number: 2 }],
+    };
+
+    const octokit = {
+      paginate: () =>
+        new Promise((resolve) => {
+          resolve(response.data);
+        }),
+      rest: {
+        codeScanning: {
+          listAlertsForRepo: jest.fn(),
+        },
+      },
+    };
+
+    const owner = "owner";
+    const repo = "repo";
+
+    const result = await queryCodeScanningAlerts(octokit, owner, repo);
+    expect(result).toEqual({
+      code_scanning_alerts: [{ number: 1 }, { number: 2 }],
+      metadata_owner: "owner",
+      metadata_repo: "repo",
+      metadata_query: "code_scanning_alerts",
     });
   });
 });
