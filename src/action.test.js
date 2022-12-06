@@ -11,6 +11,7 @@ const { postData } = require("./lib/forwarder.js");
 const {
   queryBranchProtection,
   queryCommitCount,
+  queryDependabotAlerts,
   queryRepository,
   queryRequiredFiles,
 } = require("./lib/query.js");
@@ -74,6 +75,9 @@ describe("action", () => {
     when(queryRequiredFiles)
       .calledWith("owner", "repo")
       .mockReturnValue(sampleData);
+    when(queryDependabotAlerts)
+      .calledWith("octokit", "owner", "repo")
+      .mockReturnValue(sampleData);
 
     await action();
 
@@ -112,6 +116,14 @@ describe("action", () => {
       "log-analytics-workspace-key",
       sampleData,
       "GitHubMetadata_RequiredFiles"
+    );
+
+    expect(queryDependabotAlerts).toHaveBeenCalled();
+    expect(postData).toHaveBeenCalledWith(
+      "log-analytics-workspace-id",
+      "log-analytics-workspace-key",
+      sampleData,
+      "GitHubMetadata_DependabotAlerts"
     );
   });
 });

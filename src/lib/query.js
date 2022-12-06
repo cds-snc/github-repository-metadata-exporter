@@ -68,6 +68,28 @@ const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {
   };
 };
 
+const queryDependabotAlerts = async (octokit, owner, repo) => {
+  let alerts = [];
+
+  // Loop though all the pages of alerts
+  await octokit
+    .paginate(octokit.rest.codeScanning.listAlertsForRepo, {
+      owner: owner,
+      repo: repo,
+      state: "open",
+    })
+    .then((listedAlerts) => {
+      alerts = alerts.concat(listedAlerts);
+    });
+
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "dependabot_alerts",
+    dependabot_alerts: alerts,
+  };
+};
+
 const queryRepository = async (octokit, owner, repo) => {
   const response = await octokit.rest.repos.get({
     owner: owner,
@@ -115,6 +137,7 @@ const queryRequiredFiles = async (owner, repo) => {
 module.exports = {
   queryBranchProtection: queryBranchProtection,
   queryCommitCount: queryCommitCount,
+  queryDependabotAlerts: queryDependabotAlerts,
   queryRepository: queryRepository,
   queryRequiredFiles: queryRequiredFiles,
 };

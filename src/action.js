@@ -8,6 +8,7 @@ const { postData } = require("./lib/forwarder.js");
 const {
   queryBranchProtection,
   queryCommitCount,
+  queryDependabotAlerts,
   queryRepository,
   queryRequiredFiles,
 } = require("./lib/query.js");
@@ -81,6 +82,20 @@ const action = async () => {
     prefix + "RequiredFiles"
   );
   console.log("✅ RequiredFiles data sent to Azure Log Analytics");
+
+  // Get dependabot alerts data for current branch
+  const dependabotAlertsData = await queryDependabotAlerts(
+    octokit,
+    owner,
+    repo
+  );
+  postData(
+    logAnalyticsWorkspaceId,
+    logAnalyticsWorkspaceKey,
+    dependabotAlertsData,
+    prefix + "DependabotAlerts"
+  );
+  console.log("✅ DependabotAlerts data sent to Azure Log Analytics");
 };
 
 module.exports = {

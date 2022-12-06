@@ -33586,6 +33586,7 @@ const { postData } = __nccwpck_require__(2951);
 const {
   queryBranchProtection,
   queryCommitCount,
+  queryDependabotAlerts,
   queryRepository,
   queryRequiredFiles,
 } = __nccwpck_require__(4194);
@@ -33659,6 +33660,20 @@ const action = async () => {
     prefix + "RequiredFiles"
   );
   console.log("✅ RequiredFiles data sent to Azure Log Analytics");
+
+  // Get dependabot alerts data for current branch
+  const dependabotAlertsData = await queryDependabotAlerts(
+    octokit,
+    owner,
+    repo
+  );
+  postData(
+    logAnalyticsWorkspaceId,
+    logAnalyticsWorkspaceKey,
+    dependabotAlertsData,
+    prefix + "DependabotAlerts"
+  );
+  console.log("✅ DependabotAlerts data sent to Azure Log Analytics");
 };
 
 module.exports = {
@@ -33819,6 +33834,28 @@ const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {
   };
 };
 
+const queryDependabotAlerts = async (octokit, owner, repo) => {
+  let alerts = [];
+
+  // Loop though all the pages of alerts
+  await octokit
+    .paginate(octokit.rest.codeScanning.listAlertsForRepo, {
+      owner: owner,
+      repo: repo,
+      state: "open",
+    })
+    .then((listedAlerts) => {
+      alerts = alerts.concat(listedAlerts);
+    });
+
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "dependabot_alerts",
+    dependabot_alerts: alerts,
+  };
+};
+
 const queryRepository = async (octokit, owner, repo) => {
   const response = await octokit.rest.repos.get({
     owner: owner,
@@ -33866,6 +33903,7 @@ const queryRequiredFiles = async (owner, repo) => {
 module.exports = {
   queryBranchProtection: queryBranchProtection,
   queryCommitCount: queryCommitCount,
+  queryDependabotAlerts: queryDependabotAlerts,
   queryRepository: queryRepository,
   queryRequiredFiles: queryRequiredFiles,
 };
