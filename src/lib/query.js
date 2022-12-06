@@ -38,23 +38,33 @@ const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {
     date - timeInDays * 24 * 60 * 60 * 1000
   ).toISOString();
 
-  const response = await octokit.rest.repos.listCommits({
-    owner: owner,
-    repo: repo,
-    since: pastDate,
-  });
-  if (response.status !== 200) {
-    throw new Error(
-      `Error querying commit count for repository ${owner}/${repo}: ${response.status}`
-    );
-  }
+  let commits = [];
+
+  // Loop though all the pages of commits
+  await octokit
+    .paginate(octokit.rest.repos.listCommits, {
+      owner: owner,
+      repo: repo,
+      since: pastDate,
+    })
+    .then((listedCommits) => {
+      for (const commit of listedCommits) {
+        commits.push({
+          author: commit.author.login,
+          date: commit.commit.author.date,
+          verified: commit.commit.verification.verified,
+          verified_reason: commit.commit.verification.reason,
+        });
+      }
+    });
+
   return {
     metadata_owner: owner,
     metadata_repo: repo,
     metadata_query: "commit_count",
     metadata_time_in_days: timeInDays,
     metadata_since: pastDate,
-    commit_count: response.data.length,
+    commit_count: commits,
   };
 };
 

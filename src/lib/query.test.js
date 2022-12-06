@@ -106,17 +106,49 @@ describe("queryBranchProtection", () => {
 
 describe("queryCommitCount", () => {
   test("returns commit count data if the request succeeds", async () => {
+    const response = {
+      status: 200,
+      data: [
+        {
+          author: {
+            login: "author",
+          },
+          commit: {
+            author: {
+              date: "date",
+            },
+            verification: {
+              verified: true,
+              reason: "reason",
+            },
+          },
+        },
+        {
+          author: {
+            login: "author",
+          },
+          commit: {
+            author: {
+              date: "date",
+            },
+            verification: {
+              verified: false,
+              reason: "bad_signature",
+            },
+          },
+        },
+      ],
+    };
     const octokit = {
+      paginate: () =>
+        new Promise((resolve) => {
+          resolve(response.data);
+        }),
       rest: {
         repos: {
           listCommits: jest.fn(),
         },
       },
-    };
-
-    const response = {
-      status: 200,
-      data: [1, 2, 3],
     };
 
     const owner = "owner";
@@ -128,38 +160,26 @@ describe("queryCommitCount", () => {
 
     const result = await queryCommitCount(octokit, owner, repo);
     expect(result).toEqual({
-      commit_count: 3,
+      commit_count: [
+        {
+          author: "author",
+          date: "date",
+          verified: true,
+          verified_reason: "reason",
+        },
+        {
+          author: "author",
+          date: "date",
+          verified: false,
+          verified_reason: "bad_signature",
+        },
+      ],
       metadata_owner: "owner",
       metadata_repo: "repo",
       metadata_query: "commit_count",
       metadata_time_in_days: 60,
       metadata_since: expect.any(String),
     });
-  });
-
-  test("throws an error if the request fails", async () => {
-    const octokit = {
-      rest: {
-        repos: {
-          listCommits: jest.fn(),
-        },
-      },
-    };
-
-    const response = {
-      status: 400,
-    };
-
-    const owner = "owner";
-    const repo = "repo";
-
-    when(octokit.rest.repos.listCommits)
-      .calledWith({ owner: owner, repo: repo, since: expect.anything() })
-      .mockReturnValue(response);
-
-    await expect(queryCommitCount(octokit, owner, repo)).rejects.toThrow(
-      `Error querying commit count for repository ${owner}/${repo}: ${response.status}`
-    );
   });
 });
 
