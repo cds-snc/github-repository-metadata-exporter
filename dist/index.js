@@ -32825,8 +32825,8 @@ const action = async () => {
     repo
   );
 
-  // Breaks code scanning results into chunks of 20
-  const chunkSize = 20;
+  // Breaks code scanning results into chunks of 10
+  const chunkSize = 10;
   const codeScanningAlertsDataChunks =
     codeScanningAlertsData.code_scanning_alerts;
 

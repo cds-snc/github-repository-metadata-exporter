@@ -81,7 +81,7 @@ describe("action", () => {
       .mockReturnValue(sampleData);
 
     const dataSize = 75;
-    const chunkSize = 20;
+    const chunkSize = 10;
     const codeScanningData = {
       metadata_owner: "cds-snc",
       metadata_repo: "github-repository-metadata-exporter",
