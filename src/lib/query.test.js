@@ -5,6 +5,7 @@ const { when } = require("jest-when");
 const {
   queryBranchProtection,
   queryCommitCount,
+  queryDependabotAlerts,
   queryRepository,
   queryRequiredFiles,
 } = require("./query.js");
@@ -179,6 +180,38 @@ describe("queryCommitCount", () => {
       metadata_query: "commit_count",
       metadata_time_in_days: 60,
       metadata_since: expect.any(String),
+    });
+  });
+});
+
+describe("queryDependabotAlerts", () => {
+  test("returns dependabot alerts data if the request succeeds", async () => {
+    const response = {
+      status: 200,
+      data: [{ foo: "bar" }],
+    };
+
+    const octokit = {
+      paginate: () =>
+        new Promise((resolve) => {
+          resolve(response.data);
+        }),
+      rest: {
+        codeScanning: {
+          listAlertsForRepo: jest.fn(),
+        },
+      },
+    };
+
+    const owner = "owner";
+    const repo = "repo";
+
+    const result = await queryDependabotAlerts(octokit, owner, repo);
+    expect(result).toEqual({
+      dependabot_alerts: response.data,
+      metadata_owner: "owner",
+      metadata_repo: "repo",
+      metadata_query: "dependabot_alerts",
     });
   });
 });
