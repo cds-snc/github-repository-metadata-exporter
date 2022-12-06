@@ -79,6 +79,7 @@ const queryDependabotAlerts = async (octokit, owner, repo) => {
       state: "open",
     })
     .then((listedAlerts) => {
+      console.log("Debug", listedAlerts);
       for (const alert of listedAlerts) {
         alerts.push({
           id: alert.number,
