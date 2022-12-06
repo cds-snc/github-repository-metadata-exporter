@@ -51,7 +51,7 @@ const run = async () => {
     console.log(requiredFilesData);
 
     // Get dependabot alerts data
-    const dependabotAlertsData = await queryDependabotAlerts(octokit, owner, repo);
+    const dependabotAlertsData = await queryDependabotAlerts(octokit, "cds-snc", "security-tools");
     console.log("Dependabot alerts data");
     console.log("======================");
     console.log(dependabotAlertsData);
