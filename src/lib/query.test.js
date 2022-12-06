@@ -188,7 +188,36 @@ describe("queryDependabotAlerts", () => {
   test("returns dependabot alerts data if the request succeeds", async () => {
     const response = {
       status: 200,
-      data: [{ foo: "bar" }],
+      data: [
+        {
+          number: 1,
+          dependency: {
+            name: "dependency",
+          },
+          security_advisory: {
+            ghsa_id: "ghsa_id",
+            cve_id: "cve_id",
+            severity: "severity",
+            cvss: "cvss",
+            cwes: "cwes",
+          },
+          created_at: "created_at",
+        },
+        {
+          number: 2,
+          dependency: {
+            name: "dependency",
+          },
+          security_advisory: {
+            ghsa_id: "ghsa_id",
+            cve_id: "cve_id",
+            severity: "severity",
+            cvss: "cvss",
+            cwes: "cwes",
+          },
+          created_at: "created_at",
+        },
+      ],
     };
 
     const octokit = {
@@ -197,7 +226,7 @@ describe("queryDependabotAlerts", () => {
           resolve(response.data);
         }),
       rest: {
-        codeScanning: {
+        dependabot: {
           listAlertsForRepo: jest.fn(),
         },
       },
@@ -208,7 +237,32 @@ describe("queryDependabotAlerts", () => {
 
     const result = await queryDependabotAlerts(octokit, owner, repo);
     expect(result).toEqual({
-      dependabot_alerts: response.data,
+      dependabot_alerts: [
+        {
+          id: 1,
+          dependency: {
+            name: "dependency",
+          },
+          ghsa_id: "ghsa_id",
+          cve_id: "cve_id",
+          severity: "severity",
+          cvss: "cvss",
+          cwes: "cwes",
+          created_at: "created_at",
+        },
+        {
+          id: 2,
+          dependency: {
+            name: "dependency",
+          },
+          ghsa_id: "ghsa_id",
+          cve_id: "cve_id",
+          severity: "severity",
+          cvss: "cvss",
+          cwes: "cwes",
+          created_at: "created_at",
+        },
+      ],
       metadata_owner: "owner",
       metadata_repo: "repo",
       metadata_query: "dependabot_alerts",
