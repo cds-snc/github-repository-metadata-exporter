@@ -79,18 +79,19 @@ const queryDependabotAlerts = async (octokit, owner, repo) => {
       state: "open",
     })
     .then((listedAlerts) => {
-      console.log("Debug", listedAlerts);
       for (const alert of listedAlerts) {
-        alerts.push({
-          id: alert.number,
-          dependency: alert.dependency,
-          ghsa_id: alert.security_advisory.ghsa_id,
-          cve_id: alert.security_advisory.cve_id,
-          severity: alert.security_advisory.severity,
-          cvss: alert.security_advisory.cvss,
-          cwes: alert.security_advisory.cwes,
-          created_at: alert.created_at,
-        });
+        if ("number" in alert) {
+          alerts.push({
+            id: alert.number,
+            dependency: alert.dependency,
+            ghsa_id: alert.security_advisory.ghsa_id,
+            cve_id: alert.security_advisory.cve_id,
+            severity: alert.security_advisory.severity,
+            cvss: alert.security_advisory.cvss,
+            cwes: alert.security_advisory.cwes,
+            created_at: alert.created_at,
+          });
+        }
       }
     });
 
