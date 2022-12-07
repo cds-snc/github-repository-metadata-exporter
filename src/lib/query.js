@@ -178,11 +178,13 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
     .then((listedPRs) => {
       for (const pr of listedPRs) {
         prs.push({
+          id: pr.id,
+          number: pr.number,
           title: pr.title,
           created_at: pr.created_at,
           updated_at: pr.updated_at,
           closed_at: pr.closed_at,
-          body: pr.body,
+          html_url: pr.pull_request.html_url,
         });
       }
     });
