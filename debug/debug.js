@@ -57,7 +57,7 @@ const run = async () => {
     console.log(dependabotAlertsData);
 
     // Get code scanning alerts data
-    const codeScanningAlertsData = await queryCodeScanningAlerts(octokit, owner, repo);
+    const codeScanningAlertsData = await queryCodeScanningAlerts(octokit, "cds-snc", "security-tools");
     console.log("Code scanning alerts data");
     console.log("======================");
     console.log(codeScanningAlertsData);
