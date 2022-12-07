@@ -169,6 +169,23 @@ const queryRequiredFiles = async (owner, repo) => {
   };
 };
 
+const queryRenovatePRs = async (octokit, owner, repo) => {
+  const response = await octokit.rest.search.issuesAndPullRequests({
+    q: `is:pull-request+repo:${owner}/${repo}+label:dependencies`,
+  });
+  if (response.status !== 200) {
+    throw new Error(
+      `Error querying repository ${owner}/${repo}: ${response.status}`
+    );
+  }
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "renovate_prs",
+    ...response.data,
+  };
+};
+
 module.exports = {
   queryBranchProtection: queryBranchProtection,
   queryCodeScanningAlerts: queryCodeScanningAlerts,
@@ -176,4 +193,5 @@ module.exports = {
   queryDependabotAlerts: queryDependabotAlerts,
   queryRepository: queryRepository,
   queryRequiredFiles: queryRequiredFiles,
+  queryRenovatePRs: queryRenovatePRs,
 };
