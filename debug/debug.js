@@ -63,7 +63,7 @@ const run = async () => {
     console.log(codeScanningAlertsData);
 
     // Get Renovate PRs data
-    const renovatePRs = await queryRenovatePRs(octokit, owner, repo);
+    const renovatePRs = await queryRenovatePRs(octokit, 'cds-snc', 'gcds-components');
     console.log("Renovate PRs data");
     console.log("======================");
     console.log(renovatePRs);
