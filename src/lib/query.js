@@ -170,19 +170,27 @@ const queryRequiredFiles = async (owner, repo) => {
 };
 
 const queryRenovatePRs = async (octokit, owner, repo) => {
-  const response = await octokit.rest.search.issuesAndPullRequests({
-    q: `is:pull-request+repo:${owner}/${repo}+label:dependencies`,
-  });
-  if (response.status !== 200) {
-    throw new Error(
-      `Error querying repository ${owner}/${repo}: ${response.status}`
-    );
-  }
+  let prs = [];
+  await octokit
+    .paginate(octokit.rest.search.issuesAndPullRequests, {
+      q: `is:pull-request+repo:${owner}/${repo}+label:dependencies`,
+    })
+    .then((listedPRs) => {
+      for (const pr of listedPRs) {
+        prs.push({
+          title: pr.title,
+          created_at: pr.created_at,
+          updated_at: pr.updated_at,
+          closed_at: pr.closed_at,
+          body: pr.body,
+        });
+      }
+    });
   return {
     metadata_owner: owner,
     metadata_repo: repo,
     metadata_query: "renovate_prs",
-    ...response.data,
+    renovate_prs: prs,
   };
 };
 
