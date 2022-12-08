@@ -130,11 +130,7 @@ const action = async () => {
   console.log("✅ CodeScanningAlerts data sent to Azure Log Analytics");
 
   // Get Renovate PRs data for current repo
-  const renovatePRsData = await queryRenovatePRs(
-    octokit, 
-    owner, 
-    repo
-    );
+  const renovatePRsData = await queryRenovatePRs(octokit, owner, repo);
 
   // Breaks code scanning results into chunks of 10
   const renovatePRsDataChunks = renovatePRsData.renovate_prs;
@@ -151,9 +147,7 @@ const action = async () => {
       { ...renovatePRsData, ...data },
       prefix + "RenovatePRs"
     );
-    console.log(
-      `⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics.`
-    );
+    console.log(`⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics.`);
   }
 };
 console.log("✅ RenovatePRs data sent to Azure Log Analytics");

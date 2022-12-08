@@ -190,7 +190,7 @@ describe("queryRenovatePRs", () => {
   test("returns renovate prs if the requests succeeds", async () => {
     const response = {
       status: 200,
-      data: [{ pr: 1 } , { pr: 2 }],
+      data: [{ pr: 1 }, { pr: 2 }],
     };
 
     const octokit = {
