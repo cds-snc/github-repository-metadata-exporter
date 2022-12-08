@@ -137,7 +137,6 @@ const action = async () => {
     );
 
   // Breaks code scanning results into chunks of 10
-  chunkSize = 10
   const renovatePRsDataChunks = renovatePRsData.renovate_prs;
 
   for (let i = 0; i < renovatePRsDataChunks.length; i += chunkSize) {
