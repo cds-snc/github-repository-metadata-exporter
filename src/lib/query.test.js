@@ -9,6 +9,7 @@ const {
   queryDependabotAlerts,
   queryRepository,
   queryRequiredFiles,
+  queryRenovatePRs,
 } = require("./query.js");
 
 describe("queryBranchProtection", () => {
@@ -181,6 +182,38 @@ describe("queryCommitCount", () => {
       metadata_query: "commit_count",
       metadata_time_in_days: 60,
       metadata_since: expect.any(String),
+    });
+  });
+});
+
+describe("queryRenovatePRs", () => {
+  test("returns renovate prs if the requests succeeds", async () => {
+    const response = {
+      status: 200,
+      data: [{ pr: 1 } , { pr: 2 }],
+    };
+
+    const octokit = {
+      paginate: () =>
+        new Promise((resolve) => {
+          resolve(response.data);
+        }),
+      rest: {
+        RenovatePRs: {
+          listPRs: jest.fn(),
+        },
+      },
+    };
+
+    const owner = "owner";
+    const repo = "repo";
+
+    const result = await queryRenovatePRs(octokit, owner, repo);
+    expect(result).toEqual({
+      metadata_owner: "owner",
+      metadata_repo: "repo",
+      metadata_query: "renovate_prs",
+      renovate_prs: [{ pr: 1 }, { pr: 2 }],
     });
   });
 });
