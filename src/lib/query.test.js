@@ -206,8 +206,7 @@ describe("queryRenovatePRs", () => {
         {
           id: 1474610854,
           number: 2,
-          title:
-            "chore(deps): update all minor dependencies",
+          title: "chore(deps): update all minor dependencies",
           created_at: "2022-12-04T08:47:37Z",
           updated_at: "2022-12-07T17:08:04Z",
           closed_at: null,
@@ -252,8 +251,7 @@ describe("queryRenovatePRs", () => {
         {
           id: 1474610854,
           number: 2,
-          title:
-            "chore(deps): update all minor dependencies",
+          title: "chore(deps): update all minor dependencies",
           created_at: "2022-12-04T08:47:37Z",
           updated_at: "2022-12-07T17:08:04Z",
           closed_at: null,
