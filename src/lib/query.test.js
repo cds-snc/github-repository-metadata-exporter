@@ -9,6 +9,7 @@ const {
   queryDependabotAlerts,
   queryRepository,
   queryRequiredFiles,
+  queryRenovatePRs,
 } = require("./query.js");
 
 describe("queryBranchProtection", () => {
@@ -181,6 +182,82 @@ describe("queryCommitCount", () => {
       metadata_query: "commit_count",
       metadata_time_in_days: 60,
       metadata_since: expect.any(String),
+    });
+  });
+});
+
+describe("queryRenovatePRs", () => {
+  test("returns renovate prs if the requests succeeds", async () => {
+    const response = {
+      status: 200,
+      data: [
+        {
+          id: 1474610853,
+          number: 1,
+          title:
+            "chore(deps): update js-devtools/npm-publish digest to e42e372 - autoclosed",
+          created_at: "2022-12-04T08:47:37Z",
+          updated_at: "2022-12-07T17:08:04Z",
+          closed_at: "2022-12-07T17:08:01Z",
+          pull_request: {
+            html_url: "https://www.github.com/owner/repo/pull/1",
+          },
+        },
+        {
+          id: 1474610854,
+          number: 2,
+          title: "chore(deps): update all minor dependencies",
+          created_at: "2022-12-04T08:47:37Z",
+          updated_at: "2022-12-07T17:08:04Z",
+          closed_at: null,
+          pull_request: {
+            html_url: "https://www.github.com/owner/repo/pull/2",
+          },
+        },
+      ],
+    };
+
+    const octokit = {
+      paginate: () =>
+        new Promise((resolve) => {
+          resolve(response.data);
+        }),
+      rest: {
+        search: {
+          issuesAndPullRequests: jest.fn(),
+        },
+      },
+    };
+
+    const owner = "owner";
+    const repo = "repo";
+
+    const result = await queryRenovatePRs(octokit, owner, repo);
+    expect(result).toEqual({
+      metadata_owner: "owner",
+      metadata_repo: "repo",
+      metadata_query: "renovate_prs",
+      renovate_prs: [
+        {
+          id: 1474610853,
+          number: 1,
+          title:
+            "chore(deps): update js-devtools/npm-publish digest to e42e372 - autoclosed",
+          created_at: "2022-12-04T08:47:37Z",
+          updated_at: "2022-12-07T17:08:04Z",
+          closed_at: "2022-12-07T17:08:01Z",
+          html_url: "https://www.github.com/owner/repo/pull/1",
+        },
+        {
+          id: 1474610854,
+          number: 2,
+          title: "chore(deps): update all minor dependencies",
+          created_at: "2022-12-04T08:47:37Z",
+          updated_at: "2022-12-07T17:08:04Z",
+          closed_at: null,
+          html_url: "https://www.github.com/owner/repo/pull/2",
+        },
+      ],
     });
   });
 });

@@ -169,6 +169,33 @@ const queryRequiredFiles = async (owner, repo) => {
   };
 };
 
+const queryRenovatePRs = async (octokit, owner, repo) => {
+  let prs = [];
+  await octokit
+    .paginate(octokit.rest.search.issuesAndPullRequests, {
+      q: `is:pull-request+repo:${owner}/${repo}+label:dependencies`,
+    })
+    .then((listedPRs) => {
+      for (const pr of listedPRs) {
+        prs.push({
+          id: pr.id,
+          number: pr.number,
+          title: pr.title,
+          created_at: pr.created_at,
+          updated_at: pr.updated_at,
+          closed_at: pr.closed_at,
+          html_url: pr.pull_request.html_url,
+        });
+      }
+    });
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "renovate_prs",
+    renovate_prs: prs,
+  };
+};
+
 module.exports = {
   queryBranchProtection: queryBranchProtection,
   queryCodeScanningAlerts: queryCodeScanningAlerts,
@@ -176,4 +203,5 @@ module.exports = {
   queryDependabotAlerts: queryDependabotAlerts,
   queryRepository: queryRepository,
   queryRequiredFiles: queryRequiredFiles,
+  queryRenovatePRs: queryRenovatePRs,
 };

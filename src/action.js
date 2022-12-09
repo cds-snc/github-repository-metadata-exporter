@@ -12,9 +12,11 @@ const {
   queryDependabotAlerts,
   queryRepository,
   queryRequiredFiles,
+  queryRenovatePRs,
 } = require("./lib/query.js");
 
 const prefix = "GitHubMetadata_";
+const chunkSize = 10;
 
 const action = async () => {
   const logAnalyticsWorkspaceId = core.getInput("log-analytics-workspace-id");
@@ -106,7 +108,6 @@ const action = async () => {
   );
 
   // Breaks code scanning results into chunks of 10
-  const chunkSize = 10;
   const codeScanningAlertsDataChunks =
     codeScanningAlertsData.code_scanning_alerts;
 
@@ -127,7 +128,29 @@ const action = async () => {
     );
   }
   console.log("✅ CodeScanningAlerts data sent to Azure Log Analytics");
+
+  // Get Renovate PRs data for current repo
+  const renovatePRsData = await queryRenovatePRs(octokit, owner, repo);
+
+  // Breaks code scanning results into chunks of 10
+  const renovatePRsDataChunks = renovatePRsData.renovate_prs;
+
+  for (let i = 0; i < renovatePRsDataChunks.length; i += chunkSize) {
+    const chunk = renovatePRsDataChunks.slice(i, i + chunkSize);
+    let data = {
+      renovate_prs: chunk,
+    };
+
+    await postData(
+      logAnalyticsWorkspaceId,
+      logAnalyticsWorkspaceKey,
+      { ...renovatePRsData, ...data },
+      prefix + "RenovatePRs"
+    );
+    console.log(`⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics.`);
+  }
 };
+console.log("✅ RenovatePRs data sent to Azure Log Analytics");
 
 module.exports = {
   action: action,

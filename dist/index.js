@@ -32732,9 +32732,11 @@ const {
   queryDependabotAlerts,
   queryRepository,
   queryRequiredFiles,
+  queryRenovatePRs,
 } = __nccwpck_require__(4194);
 
 const prefix = "GitHubMetadata_";
+const chunkSize = 10;
 
 const action = async () => {
   const logAnalyticsWorkspaceId = core.getInput("log-analytics-workspace-id");
@@ -32826,7 +32828,6 @@ const action = async () => {
   );
 
   // Breaks code scanning results into chunks of 10
-  const chunkSize = 10;
   const codeScanningAlertsDataChunks =
     codeScanningAlertsData.code_scanning_alerts;
 
@@ -32847,7 +32848,29 @@ const action = async () => {
     );
   }
   console.log("✅ CodeScanningAlerts data sent to Azure Log Analytics");
+
+  // Get Renovate PRs data for current repo
+  const renovatePRsData = await queryRenovatePRs(octokit, owner, repo);
+
+  // Breaks code scanning results into chunks of 10
+  const renovatePRsDataChunks = renovatePRsData.renovate_prs;
+
+  for (let i = 0; i < renovatePRsDataChunks.length; i += chunkSize) {
+    const chunk = renovatePRsDataChunks.slice(i, i + chunkSize);
+    let data = {
+      renovate_prs: chunk,
+    };
+
+    await postData(
+      logAnalyticsWorkspaceId,
+      logAnalyticsWorkspaceKey,
+      { ...renovatePRsData, ...data },
+      prefix + "RenovatePRs"
+    );
+    console.log(`⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics.`);
+  }
 };
+console.log("✅ RenovatePRs data sent to Azure Log Analytics");
 
 module.exports = {
   action: action,
@@ -33108,6 +33131,33 @@ const queryRequiredFiles = async (owner, repo) => {
   };
 };
 
+const queryRenovatePRs = async (octokit, owner, repo) => {
+  let prs = [];
+  await octokit
+    .paginate(octokit.rest.search.issuesAndPullRequests, {
+      q: `is:pull-request+repo:${owner}/${repo}+label:dependencies`,
+    })
+    .then((listedPRs) => {
+      for (const pr of listedPRs) {
+        prs.push({
+          id: pr.id,
+          number: pr.number,
+          title: pr.title,
+          created_at: pr.created_at,
+          updated_at: pr.updated_at,
+          closed_at: pr.closed_at,
+          html_url: pr.pull_request.html_url,
+        });
+      }
+    });
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "renovate_prs",
+    renovate_prs: prs,
+  };
+};
+
 module.exports = {
   queryBranchProtection: queryBranchProtection,
   queryCodeScanningAlerts: queryCodeScanningAlerts,
@@ -33115,6 +33165,7 @@ module.exports = {
   queryDependabotAlerts: queryDependabotAlerts,
   queryRepository: queryRepository,
   queryRequiredFiles: queryRequiredFiles,
+  queryRenovatePRs: queryRenovatePRs,
 };
 
 

@@ -15,6 +15,7 @@ const {
   queryDependabotAlerts,
   queryRepository,
   queryRequiredFiles,
+  queryRenovatePRs,
 } = require("./lib/query.js");
 
 jest.mock("@actions/core");
@@ -88,10 +89,20 @@ describe("action", () => {
       metadata_query: "code_scanning_alerts",
       code_scanning_alerts: Array.from(Array(dataSize).keys()),
     };
+    const renovatePRsData = {
+      metadata_owner: "cds-snc",
+      metadata_repo: "github-repository-metadata-exporter",
+      metadata_query: "renovate_prs",
+      renovate_prs: Array.from(Array(dataSize).keys()),
+    };
 
     when(queryCodeScanningAlerts)
       .calledWith("octokit", "owner", "repo")
       .mockReturnValue(codeScanningData);
+
+    when(queryRenovatePRs)
+      .calledWith("octokit", "owner", "repo")
+      .mockReturnValue(renovatePRsData);
 
     await action();
 
@@ -139,6 +150,24 @@ describe("action", () => {
       sampleData,
       "GitHubMetadata_DependabotAlerts"
     );
+
+    expect(queryRenovatePRs).toHaveBeenCalled();
+    for (let index = 0; index < dataSize; index += chunkSize) {
+      expect(postData).toHaveBeenCalledWith(
+        "log-analytics-workspace-id",
+        "log-analytics-workspace-key",
+        {
+          metadata_owner: "cds-snc",
+          metadata_repo: "github-repository-metadata-exporter",
+          metadata_query: "renovate_prs",
+          renovate_prs: renovatePRsData.renovate_prs.slice(
+            index,
+            index + chunkSize
+          ),
+        },
+        "GitHubMetadata_RenovatePRs"
+      );
+    }
 
     expect(queryCodeScanningAlerts).toHaveBeenCalled();
     for (let index = 0; index < dataSize; index += chunkSize) {
