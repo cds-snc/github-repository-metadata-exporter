@@ -203,6 +203,18 @@ describe("queryRenovatePRs", () => {
             html_url: "https://www.github.com/owner/repo/pull/1",
           },
         },
+        {
+          id: 1474610854,
+          number: 2,
+          title:
+            "chore(deps): update all minor dependencies",
+          created_at: "2022-12-04T08:47:37Z",
+          updated_at: "2022-12-07T17:08:04Z",
+          closed_at: null,
+          pull_request: {
+            html_url: "https://www.github.com/owner/repo/pull/2",
+          },
+        },
       ],
     };
 
@@ -236,6 +248,16 @@ describe("queryRenovatePRs", () => {
           updated_at: "2022-12-07T17:08:04Z",
           closed_at: "2022-12-07T17:08:01Z",
           html_url: "https://www.github.com/owner/repo/pull/1",
+        },
+        {
+          id: 1474610854,
+          number: 2,
+          title:
+            "chore(deps): update all minor dependencies",
+          created_at: "2022-12-04T08:47:37Z",
+          updated_at: "2022-12-07T17:08:04Z",
+          closed_at: null,
+          html_url: "https://www.github.com/owner/repo/pull/2",
         },
       ],
     });
