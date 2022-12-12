@@ -32963,77 +32963,58 @@ module.exports = {
 const fs = __nccwpck_require__(7147);
 
 const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
-  const response = await octokit.rest.repos.getBranchProtection({
-    branch: branch,
-    owner: owner,
-    repo: repo,
-  });
-  switch (response.status) {
-    case 404:
-      return {
-        metadata_owner: owner,
-        metadata_repo: repo,
-        metadata_query: "branch_protection",
-        metadata_branch: branch,
-        enabled: false,
-      };
+  let response = { data: { enabled: false } };
 
-    case 200:
-      return {
-        metadata_owner: owner,
-        metadata_repo: repo,
-        metadata_query: "branch_protection",
-        metadata_branch: branch,
-        ...response.data,
-      };
-
-    default:
+  try {
+    response = await octokit.rest.repos.getBranchProtection({
+      branch: branch,
+      owner: owner,
+      repo: repo,
+    });
+  } catch (error) {
+    if (error.status !== 404) {
       throw new Error(
-        `Failed to get branch protection for ${branch} on ${owner}/${repo}: ${response.status}`
+        `Failed to get branch protection for ${branch} on ${owner}/${repo}: ${error.status}`
       );
+    }
   }
+
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "branch_protection",
+    metadata_branch: branch,
+    ...response.data,
+  };
 };
 
 const queryCodeScanningAlerts = async (octokit, owner, repo) => {
   let alerts = [];
 
-  const response = await octokit.rest.codeScanning.listAlertsForRepo({
-    owner: owner,
-    repo: repo,
-    state: "open",
-  });
-  switch (response.status) {
-    case 404:
-      return {
-        metadata_owner: owner,
-        metadata_repo: repo,
-        metadata_query: "code_scanning_alerts",
-        code_scanning_alerts: alerts,
-      };
-
-    case 200:
-      // Loop though all the pages of alerts
-      await octokit
-        .paginate(octokit.rest.codeScanning.listAlertsForRepo, {
-          owner: owner,
-          repo: repo,
-          state: "open",
-        })
-        .then((listedAlerts) => {
-          alerts = alerts.concat(listedAlerts);
-        });
-      return {
-        metadata_owner: owner,
-        metadata_repo: repo,
-        metadata_query: "code_scanning_alerts",
-        code_scanning_alerts: alerts,
-      };
-
-    default:
+  try {
+    await octokit
+      .paginate(octokit.rest.codeScanning.listAlertsForRepo, {
+        owner: owner,
+        repo: repo,
+        state: "open",
+      })
+      .then((listedAlerts) => {
+        alerts = alerts.concat(listedAlerts);
+      });
+  } catch (error) {
+    if (error.status !== 404) {
       throw new Error(
-        `Failed to get code scanning alerts for ${owner}/${repo}: ${response.status}`
+        `Failed to get code scanning alerts for ${owner}/${repo}: ${error.status}`
       );
+    }
   }
+
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "code_scanning_alerts",
+    code_scanning_alerts: alerts,
+  };
 };
 
 const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {
