@@ -35,23 +35,43 @@ const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
 const queryCodeScanningAlerts = async (octokit, owner, repo) => {
   let alerts = [];
 
-  // Loop though all the pages of alerts
-  await octokit
-    .paginate(octokit.rest.codeScanning.listAlertsForRepo, {
-      owner: owner,
-      repo: repo,
-      state: "open",
-    })
-    .then((listedAlerts) => {
-      alerts = alerts.concat(listedAlerts);
-    });
+  const response = await octokit.rest.codeScanning.listAlertsForRepo({
+    owner: owner,
+    repo: repo,
+    state: "open",
+  });
+  switch (response.status) {
+    case 404:
+      return {
+        metadata_owner: owner,
+        metadata_repo: repo,
+        metadata_query: "code_scanning_alerts",
+        code_scanning_alerts: alerts,
+      };
 
-  return {
-    metadata_owner: owner,
-    metadata_repo: repo,
-    metadata_query: "code_scanning_alerts",
-    code_scanning_alerts: alerts,
-  };
+    case 200:
+      // Loop though all the pages of alerts
+      await octokit
+        .paginate(octokit.rest.codeScanning.listAlertsForRepo, {
+          owner: owner,
+          repo: repo,
+          state: "open",
+        })
+        .then((listedAlerts) => {
+          alerts = alerts.concat(listedAlerts);
+        });
+      return {
+        metadata_owner: owner,
+        metadata_repo: repo,
+        metadata_query: "code_scanning_alerts",
+        code_scanning_alerts: alerts,
+      };
+
+    default:
+      throw new Error(
+        `Failed to get code scanning alerts for ${owner}/${repo}: ${response.status}`
+      );
+  }
 };
 
 const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {

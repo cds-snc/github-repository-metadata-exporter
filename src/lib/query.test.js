@@ -284,6 +284,10 @@ describe("queryCodeScanningAlerts", () => {
     const owner = "owner";
     const repo = "repo";
 
+    when(octokit.rest.codeScanning.listAlertsForRepo)
+      .calledWith({ state: "open", owner: owner, repo: repo })
+      .mockReturnValue(response);
+
     const result = await queryCodeScanningAlerts(octokit, owner, repo);
     expect(result).toEqual({
       code_scanning_alerts: [{ number: 1 }, { number: 2 }],
@@ -291,6 +295,60 @@ describe("queryCodeScanningAlerts", () => {
       metadata_repo: "repo",
       metadata_query: "code_scanning_alerts",
     });
+  });
+
+  test("returns no code scanning alerts if 404", async () => {
+    const octokit = {
+      rest: {
+        codeScanning: {
+          listAlertsForRepo: jest.fn(),
+        },
+      },
+    };
+
+    const response = {
+      status: 404,
+    };
+
+    const owner = "owner";
+    const repo = "repo";
+
+    when(octokit.rest.codeScanning.listAlertsForRepo)
+      .calledWith({ state: "open", owner: owner, repo: repo })
+      .mockReturnValue(response);
+
+    const result = await queryCodeScanningAlerts(octokit, owner, repo);
+    expect(result).toEqual({
+      metadata_owner: "owner",
+      metadata_repo: "repo",
+      code_scanning_alerts: [],
+      metadata_query: "code_scanning_alerts",
+    });
+  });
+
+  test("throws an error if the request fails", async () => {
+    const octokit = {
+      rest: {
+        codeScanning: {
+          listAlertsForRepo: jest.fn(),
+        },
+      },
+    };
+
+    const response = {
+      status: 400,
+    };
+
+    const owner = "owner";
+    const repo = "repo";
+
+    when(octokit.rest.codeScanning.listAlertsForRepo)
+      .calledWith({ state: "open", owner: owner, repo: repo })
+      .mockReturnValue(response);
+
+    await expect(queryCodeScanningAlerts(octokit, owner, repo)).rejects.toThrow(
+      `Failed to get code scanning alerts for ${owner}/${repo}: ${response.status}`
+    );
   });
 });
 
