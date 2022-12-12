@@ -66,7 +66,7 @@ describe("queryBranchProtection", () => {
 
     when(octokit.rest.repos.getBranchProtection)
       .calledWith({ branch: branch, owner: owner, repo: repo })
-      .mockReturnValue(response);
+      .mockRejectedValue(response);
 
     const result = await queryBranchProtection(octokit, owner, repo, branch);
     expect(result).toEqual({
@@ -97,7 +97,7 @@ describe("queryBranchProtection", () => {
 
     when(octokit.rest.repos.getBranchProtection)
       .calledWith({ branch: branch, owner: owner, repo: repo })
-      .mockReturnValue(response);
+      .mockRejectedValue(response);
 
     await expect(
       queryBranchProtection(octokit, owner, repo, branch)
@@ -284,10 +284,6 @@ describe("queryCodeScanningAlerts", () => {
     const owner = "owner";
     const repo = "repo";
 
-    when(octokit.rest.codeScanning.listAlertsForRepo)
-      .calledWith({ state: "open", owner: owner, repo: repo })
-      .mockReturnValue(response);
-
     const result = await queryCodeScanningAlerts(octokit, owner, repo);
     expect(result).toEqual({
       code_scanning_alerts: [{ number: 1 }, { number: 2 }],
@@ -299,6 +295,12 @@ describe("queryCodeScanningAlerts", () => {
 
   test("returns no code scanning alerts if 404", async () => {
     const octokit = {
+      paginate: () =>
+        new Promise((_, rejects) => {
+          rejects({
+            status: 404,
+          });
+        }),
       rest: {
         codeScanning: {
           listAlertsForRepo: jest.fn(),
@@ -306,16 +308,8 @@ describe("queryCodeScanningAlerts", () => {
       },
     };
 
-    const response = {
-      status: 404,
-    };
-
     const owner = "owner";
     const repo = "repo";
-
-    when(octokit.rest.codeScanning.listAlertsForRepo)
-      .calledWith({ state: "open", owner: owner, repo: repo })
-      .mockReturnValue(response);
 
     const result = await queryCodeScanningAlerts(octokit, owner, repo);
     expect(result).toEqual({
@@ -328,6 +322,12 @@ describe("queryCodeScanningAlerts", () => {
 
   test("throws an error if the request fails", async () => {
     const octokit = {
+      paginate: () =>
+        new Promise((_, rejects) => {
+          rejects({
+            status: 400,
+          });
+        }),
       rest: {
         codeScanning: {
           listAlertsForRepo: jest.fn(),
@@ -335,19 +335,11 @@ describe("queryCodeScanningAlerts", () => {
       },
     };
 
-    const response = {
-      status: 400,
-    };
-
     const owner = "owner";
     const repo = "repo";
 
-    when(octokit.rest.codeScanning.listAlertsForRepo)
-      .calledWith({ state: "open", owner: owner, repo: repo })
-      .mockReturnValue(response);
-
     await expect(queryCodeScanningAlerts(octokit, owner, repo)).rejects.toThrow(
-      `Failed to get code scanning alerts for ${owner}/${repo}: ${response.status}`
+      `Failed to get code scanning alerts for ${owner}/${repo}: 400`
     );
   });
 });
