@@ -28,6 +28,7 @@ const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
 
 const queryCodeScanningAlerts = async (octokit, owner, repo) => {
   let alerts = [];
+  const allowedErrors = [403, 404];
 
   try {
     await octokit
@@ -40,7 +41,7 @@ const queryCodeScanningAlerts = async (octokit, owner, repo) => {
         alerts = alerts.concat(listedAlerts);
       });
   } catch (error) {
-    if (error.status !== 404) {
+    if (allowedErrors.includes(error.status) === false) {
       throw new Error(
         `Failed to get code scanning alerts for ${owner}/${repo}: ${error.status}`
       );

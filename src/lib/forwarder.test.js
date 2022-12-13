@@ -39,6 +39,7 @@ describe("postData", () => {
 
     const response = {
       status: 400,
+      text: "Bad request",
     };
 
     superagent.post.mockReturnValue({
@@ -50,7 +51,7 @@ describe("postData", () => {
     await expect(
       postData(workspaceId, workspaceKey, data, logType)
     ).rejects.toThrow(
-      `Error posting data to Azure Log Analytics: ${response.status}`
+      `Error posting data to Azure Log Analytics: ${response.status} ${response.text}`
     );
   });
 });
