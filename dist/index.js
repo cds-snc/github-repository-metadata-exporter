@@ -32941,12 +32941,17 @@ const postData = async (customerId, sharedKey, body, logType) => {
     "x-ms-date": rfc1123date,
   };
 
-  let response = await superagent.post(url).set(headers).send(body);
-  if (response.status !== 200) {
+  try {
+    let response = await superagent.post(url).set(headers).send(body);
+    if (response.status !== 200) {
+      throw response;
+    }
+  } catch (error) {
     throw new Error(
-      `Error posting data to Azure Log Analytics: ${response.status}`
+      `Error posting data to Azure Log Analytics: ${error.status} ${error.text}`
     );
   }
+
   return true;
 };
 
@@ -32990,6 +32995,7 @@ const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
 
 const queryCodeScanningAlerts = async (octokit, owner, repo) => {
   let alerts = [];
+  const allowedErrors = [403, 404];
 
   try {
     await octokit
@@ -33002,7 +33008,7 @@ const queryCodeScanningAlerts = async (octokit, owner, repo) => {
         alerts = alerts.concat(listedAlerts);
       });
   } catch (error) {
-    if (error.status !== 404) {
+    if (allowedErrors.includes(error.status) === false) {
       throw new Error(
         `Failed to get code scanning alerts for ${owner}/${repo}: ${error.status}`
       );
