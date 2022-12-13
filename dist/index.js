@@ -32951,7 +32951,6 @@ const postData = async (customerId, sharedKey, body, logType) => {
       `Error posting data to Azure Log Analytics: ${error.status} ${error.text}`
     );
   }
-
   return true;
 };
 
