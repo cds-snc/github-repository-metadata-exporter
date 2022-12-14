@@ -32869,8 +32869,8 @@ const action = async () => {
     );
     console.log(`⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics.`);
   }
+  console.log("✅ RenovatePRs data sent to Azure Log Analytics");
 };
-console.log("✅ RenovatePRs data sent to Azure Log Analytics");
 
 module.exports = {
   action: action,
@@ -32917,7 +32917,8 @@ const buildSignature = (
 };
 
 const postData = async (customerId, sharedKey, body, logType) => {
-  body = JSON.stringify(body);
+  body = normalizeBody(body);
+
   let method = "POST";
   let contentType = "application/json";
   let resource = "/api/logs";
@@ -32933,6 +32934,7 @@ const postData = async (customerId, sharedKey, body, logType) => {
     contentType,
     resource
   );
+
   let url = `https://${customerId}.ods.opinsights.azure.com${resource}?api-version=2016-04-01`;
   let headers = {
     "content-type": contentType,
@@ -32948,13 +32950,30 @@ const postData = async (customerId, sharedKey, body, logType) => {
     }
   } catch (error) {
     throw new Error(
-      `Error posting data to Azure Log Analytics: ${error.status} ${error.text}`
+      `Error posting data to Azure Log Analytics: ${error.status}`
     );
   }
   return true;
 };
 
+/**
+ * Replace all diacritics with their base characters and remove all emojis.
+ * This is to ensure that the data is sent to Azure Log Analytics without any issues.
+ * @param {String} body context to noralize
+ * @returns {String}
+ */
+const normalizeBody = (body) => {
+  return JSON.stringify(body)
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(
+      /(?![*#0-9]+)[\p{Emoji}\p{Emoji_Modifier}\p{Emoji_Component}\p{Emoji_Modifier_Base}\p{Emoji_Presentation}]/gu,
+      ""
+    );
+};
+
 module.exports = {
+  normalizeBody: normalizeBody,
   postData: postData,
 };
 

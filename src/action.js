@@ -149,8 +149,8 @@ const action = async () => {
     );
     console.log(`⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics.`);
   }
+  console.log("✅ RenovatePRs data sent to Azure Log Analytics");
 };
-console.log("✅ RenovatePRs data sent to Azure Log Analytics");
 
 module.exports = {
   action: action,

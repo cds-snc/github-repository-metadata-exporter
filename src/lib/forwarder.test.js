@@ -2,7 +2,7 @@
 
 const superagent = require("superagent");
 
-const { postData } = require("./forwarder.js");
+const { normalizeBody, postData } = require("./forwarder.js");
 
 jest.mock("superagent");
 
@@ -51,7 +51,47 @@ describe("postData", () => {
     await expect(
       postData(workspaceId, workspaceKey, data, logType)
     ).rejects.toThrow(
-      `Error posting data to Azure Log Analytics: ${response.status} ${response.text}`
+      `Error posting data to Azure Log Analytics: ${response.status}`
     );
+  });
+});
+
+describe("normalizeBody", () => {
+  test("returns a JSON string", () => {
+    const data = {
+      id: "123asdf",
+      body: "some text data right mere",
+      url: "https://www.example.com",
+      equation: "2 + 2 = 4",
+      comment:
+        "<!-- some comment --><a href='https://www.example.com'>link</a>",
+    };
+
+    const result = normalizeBody(data);
+    expect(result).toEqual(JSON.stringify(data));
+  });
+
+  test("removes diacritics", () => {
+    const data = {
+      diacritics:
+        "some data éÉàÀèÈùÙâÂêÊîÎôÔûÛ mixed in for good measure ëËïÏüÜçÇ",
+    };
+
+    const result = normalizeBody(data);
+    expect(result).toEqual(
+      JSON.stringify({
+        diacritics:
+          "some data eEaAeEuUaAeEiIoOuU mixed in for good measure eEiIuUcC",
+      })
+    );
+  });
+
+  test("removes emojis", () => {
+    const data = {
+      emoji: "⬆️🙃👍🤖 with text 🦄",
+    };
+
+    const result = normalizeBody(data);
+    expect(result).toEqual(JSON.stringify({ emoji: " with text " }));
   });
 });
