@@ -73,9 +73,9 @@ const postData = async (customerId, sharedKey, body, logType) => {
 };
 
 /**
- * Replace all diacritics with their base characters and remove all emojis.
+ * Remove all diacritics and emojis from the payload body.
  * This is to ensure that the data is sent to Azure Log Analytics without any issues.
- * @param {String} body context to noralize
+ * @param {String} body content to noralize
  * @returns {String}
  */
 const normalizeBody = (body) => {
