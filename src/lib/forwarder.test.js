@@ -59,12 +59,19 @@ describe("postData", () => {
 describe("normalizeBody", () => {
   test("returns a JSON string", () => {
     const data = {
-      id: "123asdf",
+      id: "3fe73645-2318-474a-845d-b5bfc1fafeef",
       body: "some text data right mere",
       url: "https://www.example.com",
       equation: "2 + 2 = 4",
-      comment:
-        "<!-- some comment --><a href='https://www.example.com'>link</a>",
+      timestamp: "2022-12-14T07:00:56.3934408Z",
+      nested_json: [
+        {
+          environment: '{"image":"cloud_asset_inventory/cartography"}',
+          analysis_key:
+            ".github/workflows/build_and_push.yml:build-push-and-deploy",
+          text: "Artifact: /home/python/venv/lib/python3.10/site-packages/googleapiclient/discovery_cache/documents/appengine.v1beta.json\nType: \nSecret Asymmetric Private Key\nSeverity: HIGH\nMatch: ----BEGIN RSA PRIVATE KEY-----*-----END RSA PRIVATE",
+        },
+      ],
     };
 
     const result = normalizeBody(data);
