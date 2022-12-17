@@ -23,12 +23,11 @@ const queryActionDependencies = async (owner, repo) => {
           const action = actionMatch[1];
           let name = action;
           let ref = null;
-          if (action.includes('@')) {
-            const parts = action.split('@');
-            name = parts[0];
-            ref = parts[1];
+          const refMatch = action.match(/@([^#]*)/);
+          if (refMatch) {
+            name = action.split('@')[0];
+            ref = refMatch[1].trim();
           }
-
           // Extract any comments denoted by a `#`
           let comment = null;
           const commentMatch = line.match(/# (.*)/);
