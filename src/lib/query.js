@@ -12,8 +12,8 @@ const queryActionDependencies = async (owner, repo) => {
 
   // Parse the contents of each workflow file and extract the `uses` values
   const usesList = [];
-  for (const workflowFile of workflowFiles) {
-    const workflowContent = await fs.promises.readFile(workflowFile, 'utf8');
+  for (const file of workflowFiles) {
+    const workflowContent = await fs.promises.readFile(file, 'utf8');
     const lines = workflowContent.split('\n');
     for (const line of lines) {
       if (line.trim().startsWith('uses:') || line.trim().startsWith('- uses:')) {
@@ -35,7 +35,7 @@ const queryActionDependencies = async (owner, repo) => {
             comment = commentMatch[1];
           }
 
-          usesList.push({ name, ref, comment });
+          usesList.push({ name, ref, comment, file });
         }
       }
     }
