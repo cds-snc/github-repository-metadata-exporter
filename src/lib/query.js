@@ -1,4 +1,56 @@
 const fs = require("fs");
+const path = require('path');
+
+const queryActionDependencies = async (owner, repo) => {
+
+  const workflowsRoot = path.join(__dirname, '/.github/workflows');
+
+  // Find all files with a `.yml` extension in the workflows root
+  const workflowFiles = await fs.promises.readdir(workflowsRoot, { withFileTypes: true })
+    .then(files => files.filter(file => file.isFile() && (file.name.endsWith('.yml') || file.name.endsWith('.yaml'))))
+    .then(files => files.map(file => path.join(repoRoot, file.name)));
+
+  // Parse the contents of each workflow file and extract the `uses` values
+  const usesList = [];
+  for (const workflowFile of workflowFiles) {
+    const workflowContent = await fs.promises.readFile(workflowFile, 'utf8');
+    const lines = workflowContent.split('\n');
+    for (const line of lines) {
+      if (line.trim().startsWith('uses:') || line.trim().startsWith('- uses:')) {
+        // Extract the name of the action and the SHA reference, if present
+        const actionMatch = line.match(/uses: (.*)/);
+        if (actionMatch) {
+          const action = actionMatch[1];
+          let name = action;
+          let sha = null;
+          if (action.includes('@')) {
+            const parts = action.split('@');
+            name = parts[0];
+            sha = parts[1];
+          }
+
+          // Extract any comments denoted by a `#`
+          let comment = null;
+          const commentMatch = line.match(/# (.*)/);
+          if (commentMatch) {
+            comment = commentMatch[1];
+          }
+
+          usesList.push({ name, sha, comment });
+        }
+      }
+    }
+  }
+
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "action_dependencies",
+    action_dependencies: usesList,
+  };
+
+
+}
 
 const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
   let response = { data: { enabled: false } };
@@ -199,6 +251,7 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
 };
 
 module.exports = {
+  queryActionDependencies: queryActionDependencies,
   queryBranchProtection: queryBranchProtection,
   queryCodeScanningAlerts: queryCodeScanningAlerts,
   queryCommitCount: queryCommitCount,
