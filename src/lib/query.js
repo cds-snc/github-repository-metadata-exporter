@@ -8,7 +8,7 @@ const queryActionDependencies = async (owner, repo) => {
   // Find all files with a `.yml` extension in the workflows root
   const workflowFiles = await fs.promises.readdir(workflowsRoot, { withFileTypes: true })
     .then(files => files.filter(file => file.isFile() && (file.name.endsWith('.yml') || file.name.endsWith('.yaml'))))
-    .then(files => files.map(file => path.join(repoRoot, file.name)));
+    .then(files => files.map(file => path.join(workflowsRoot, file.name)));
 
   // Parse the contents of each workflow file and extract the `uses` values
   const usesList = [];
