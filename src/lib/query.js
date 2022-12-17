@@ -22,11 +22,11 @@ const queryActionDependencies = async (owner, repo) => {
         if (actionMatch) {
           const action = actionMatch[1];
           let name = action;
-          let sha = null;
+          let ref = null;
           if (action.includes('@')) {
             const parts = action.split('@');
             name = parts[0];
-            sha = parts[1];
+            ref = parts[1];
           }
 
           // Extract any comments denoted by a `#`
@@ -36,7 +36,7 @@ const queryActionDependencies = async (owner, repo) => {
             comment = commentMatch[1];
           }
 
-          usesList.push({ name, sha, comment });
+          usesList.push({ name, ref, comment });
         }
       }
     }
