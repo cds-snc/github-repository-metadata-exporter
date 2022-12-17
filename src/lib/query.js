@@ -44,7 +44,7 @@ const queryActionDependencies = async (owner, repo) => {
             comment = commentMatch[1];
           }
           const fileName = file.split("/").pop();
-          usesList.push({ name, ref, comment, fileName });
+          usesList.push({ name, ref, comment, file_name: fileName });
         }
       }
     }
