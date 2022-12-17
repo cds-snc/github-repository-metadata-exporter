@@ -3,7 +3,7 @@ const path = require('path');
 
 const queryActionDependencies = async (owner, repo) => {
 
-  const workflowsRoot = path.join(__dirname, '/.github/workflows');
+  const workflowsRoot = '/.github/workflows';
 
   // Find all files with a `.yml` extension in the workflows root
   const workflowFiles = await fs.promises.readdir(workflowsRoot, { withFileTypes: true })
