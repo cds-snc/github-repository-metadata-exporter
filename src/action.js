@@ -158,9 +158,9 @@ const action = async () => {
     logAnalyticsWorkspaceId,
     logAnalyticsWorkspaceKey,
     actionDependenciesData,
-    prefix + "ActioDependencies"
+    prefix + "ActionDependencies"
   );
-  console.log("✅ ActioDe data sent to Azure Log Analytics");
+  console.log("✅ ActionDependencies data sent to Azure Log Analytics");
 };
 
 module.exports = {

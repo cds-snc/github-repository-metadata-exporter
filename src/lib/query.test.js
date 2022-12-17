@@ -3,6 +3,7 @@
 const { when } = require("jest-when");
 
 const {
+  queryActionDependencies,
   queryBranchProtection,
   queryCodeScanningAlerts,
   queryCommitCount,
@@ -11,6 +12,19 @@ const {
   queryRequiredFiles,
   queryRenovatePRs,
 } = require("./query.js");
+
+describe("queryActionDependencies", () => {
+  test("returns action dependencies for a repository", async () => {
+    const result = await queryActionDependencies("owner", "repo");
+
+    expect(result).toEqual({
+      metadata_owner: "owner",
+      metadata_repo: "repo",
+      metadata_query: "action_dependencies",
+      action_dependencies: expect.any(Array),
+    });
+  });
+});
 
 describe("queryBranchProtection", () => {
   test("returns branch protection data if the request succeeds", async () => {

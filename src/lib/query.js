@@ -1,22 +1,31 @@
 const fs = require("fs");
-const path = require('path');
+const path = require("path");
 
 const queryActionDependencies = async (owner, repo) => {
+  const workflowsRoot = ".github/workflows";
 
-  const workflowsRoot = '.github/workflows';
-
-  // Find all files with a `.yml` extension in the workflows root
-  const workflowFiles = await fs.promises.readdir(workflowsRoot, { withFileTypes: true })
-    .then(files => files.filter(file => file.isFile() && (file.name.endsWith('.yml') || file.name.endsWith('.yaml'))))
-    .then(files => files.map(file => path.join(workflowsRoot, file.name)));
+  // Find all files with a `.yml/.yaml` extension in the workflows root
+  const workflowFiles = await fs.promises
+    .readdir(workflowsRoot, { withFileTypes: true })
+    .then((files) =>
+      files.filter(
+        (file) =>
+          file.isFile() &&
+          (file.name.endsWith(".yml") || file.name.endsWith(".yaml"))
+      )
+    )
+    .then((files) => files.map((file) => path.join(workflowsRoot, file.name)));
 
   // Parse the contents of each workflow file and extract the `uses` values
   const usesList = [];
   for (const file of workflowFiles) {
-    const workflowContent = await fs.promises.readFile(file, 'utf8');
-    const lines = workflowContent.split('\n');
+    const workflowContent = await fs.promises.readFile(file, "utf8");
+    const lines = workflowContent.split("\n");
     for (const line of lines) {
-      if (line.trim().startsWith('uses:') || line.trim().startsWith('- uses:')) {
+      if (
+        line.trim().startsWith("uses:") ||
+        line.trim().startsWith("- uses:")
+      ) {
         // Extract the name of the action and the SHA reference, if present
         const actionMatch = line.match(/uses: (.*)/);
         if (actionMatch) {
@@ -25,7 +34,7 @@ const queryActionDependencies = async (owner, repo) => {
           let ref = null;
           const refMatch = action.match(/@([^#]*)/);
           if (refMatch) {
-            name = action.split('@')[0];
+            name = action.split("@")[0];
             ref = refMatch[1].trim();
           }
           // Extract any comments denoted by a `#`
@@ -34,7 +43,7 @@ const queryActionDependencies = async (owner, repo) => {
           if (commentMatch) {
             comment = commentMatch[1];
           }
-          const fileName = file.split('/').pop();
+          const fileName = file.split("/").pop();
           usesList.push({ name, ref, comment, fileName });
         }
       }
@@ -47,9 +56,7 @@ const queryActionDependencies = async (owner, repo) => {
     metadata_query: "action_dependencies",
     action_dependencies: usesList,
   };
-
-
-}
+};
 
 const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
   let response = { data: { enabled: false } };

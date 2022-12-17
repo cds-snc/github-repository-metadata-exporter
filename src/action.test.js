@@ -9,6 +9,7 @@ const { action } = require("./action.js");
 
 const { postData } = require("./lib/forwarder.js");
 const {
+  queryActionDependencies,
   queryBranchProtection,
   queryCodeScanningAlerts,
   queryCommitCount,
@@ -104,6 +105,10 @@ describe("action", () => {
       .calledWith("octokit", "owner", "repo")
       .mockReturnValue(renovatePRsData);
 
+    when(queryActionDependencies)
+      .calledWith("owner", "repo")
+      .mockReturnValue(sampleData);
+
     await action();
 
     expect(queryRepository).toHaveBeenCalledWith("octokit", "owner", "repo");
@@ -186,5 +191,13 @@ describe("action", () => {
         "GitHubMetadata_CodeScanningAlerts"
       );
     }
+
+    expect(queryActionDependencies).toHaveBeenCalledWith("owner", "repo");
+    expect(postData).toHaveBeenCalledWith(
+      "log-analytics-workspace-id",
+      "log-analytics-workspace-key",
+      sampleData,
+      "GitHubMetadata_ActionDependencies"
+    );
   });
 });
