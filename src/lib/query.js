@@ -1,4 +1,62 @@
 const fs = require("fs");
+const path = require("path");
+
+const queryActionDependencies = async (owner, repo) => {
+  const workflowsRoot = ".github/workflows";
+
+  // Find all files with a `.yml/.yaml` extension in the workflows root
+  const workflowFiles = await fs.promises
+    .readdir(workflowsRoot, { withFileTypes: true })
+    .then((files) =>
+      files.filter(
+        (file) =>
+          file.isFile() &&
+          (file.name.endsWith(".yml") || file.name.endsWith(".yaml"))
+      )
+    )
+    .then((files) => files.map((file) => path.join(workflowsRoot, file.name)));
+
+  // Parse the contents of each workflow file and extract the `uses` values
+  const usesList = [];
+  for (const file of workflowFiles) {
+    const workflowContent = await fs.promises.readFile(file, "utf8");
+    const lines = workflowContent.split("\n");
+    for (const line of lines) {
+      if (
+        line.trim().startsWith("uses:") ||
+        line.trim().startsWith("- uses:")
+      ) {
+        // Extract the name of the action and the SHA reference, if present
+        const actionMatch = line.match(/uses: (.*)/);
+        if (actionMatch) {
+          const action = actionMatch[1];
+          let name = action;
+          let ref = null;
+          const refMatch = action.match(/@([^#]*)/);
+          if (refMatch) {
+            name = action.split("@")[0];
+            ref = refMatch[1].trim();
+          }
+          // Extract any comments denoted by a `#`
+          let comment = null;
+          const commentMatch = line.match(/# (.*)/);
+          if (commentMatch) {
+            comment = commentMatch[1];
+          }
+          const fileName = file.split("/").pop();
+          usesList.push({ name, ref, comment, file_name: fileName });
+        }
+      }
+    }
+  }
+
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "action_dependencies",
+    action_dependencies: usesList,
+  };
+};
 
 const queryBranchProtection = async (octokit, owner, repo, branch = "main") => {
   let response = { data: { enabled: false } };
@@ -199,6 +257,7 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
 };
 
 module.exports = {
+  queryActionDependencies: queryActionDependencies,
   queryBranchProtection: queryBranchProtection,
   queryCodeScanningAlerts: queryCodeScanningAlerts,
   queryCommitCount: queryCommitCount,

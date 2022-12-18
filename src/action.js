@@ -6,6 +6,7 @@ const { createAppAuth } = require("@octokit/auth-app");
 
 const { postData } = require("./lib/forwarder.js");
 const {
+  queryActionDependencies,
   queryBranchProtection,
   queryCodeScanningAlerts,
   queryCommitCount,
@@ -150,6 +151,16 @@ const action = async () => {
     console.log(`⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics.`);
   }
   console.log("✅ RenovatePRs data sent to Azure Log Analytics");
+
+  // Get required files data for current branch
+  const actionDependenciesData = await queryActionDependencies(owner, repo);
+  await postData(
+    logAnalyticsWorkspaceId,
+    logAnalyticsWorkspaceKey,
+    actionDependenciesData,
+    prefix + "ActionDependencies"
+  );
+  console.log("✅ ActionDependencies data sent to Azure Log Analytics");
 };
 
 module.exports = {

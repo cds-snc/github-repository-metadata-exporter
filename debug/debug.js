@@ -3,7 +3,7 @@
 const github = require("@actions/github");
 const { createAppAuth } = require("@octokit/auth-app");
 
-const { queryBranchProtection, queryCodeScanningAlerts, queryCommitCount, queryDependabotAlerts, queryRepository, queryRequiredFiles, queryRenovatePRs } = require("../src/lib/query.js");
+const { queryActionDependencies, queryBranchProtection, queryCodeScanningAlerts, queryCommitCount, queryDependabotAlerts, queryRepository, queryRequiredFiles, queryRenovatePRs } = require("../src/lib/query.js");
 
 const run = async () => {
 
@@ -67,6 +67,12 @@ const run = async () => {
     console.log("Renovate PRs data");
     console.log("======================");
     console.log(renovatePRs);
+
+    // Get action dependencies data
+    const actionDependenciesData = await queryActionDependencies(owner, repo);
+    console.log("Action dependencies data");
+    console.log("======================");
+    console.log(actionDependenciesData);
 };
 
 run();
