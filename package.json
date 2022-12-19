@@ -38,5 +38,10 @@
     "@actions/github": "^5.1.1",
     "@octokit/auth-app": "^4.0.7",
     "superagent": "^8.0.5"
+  },
+  "overrides": {
+    "@actions/github": {
+      "@octokit/plugin-rest-endpoint-methods": "^6.7.0"
+    }
   }
 }
