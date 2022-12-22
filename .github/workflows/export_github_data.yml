@@ -17,3 +17,4 @@ jobs:
           github-app-private-key: ${{ secrets.SRE_BOT_RO_PRIVATE_KEY }}
           log-analytics-workspace-id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
           log-analytics-workspace-key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
+          get-org-data: "true" # This should only be set to true in the github-repository-metadata-exporter repo

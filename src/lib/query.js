@@ -259,7 +259,7 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
 const queryUsers = async (octokit, owner) => {
   let users = [];
   await octokit
-    .paginate(octokit.rest.users.list)
+    .paginate(octokit.rest.orgs.listMembers)
     .then((listedUsers) => {
       for (const user of listedUsers) {
         users.push({
