@@ -256,6 +256,30 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
   };
 };
 
+const queryUsers = async (octokit, owner) => {
+  let users = [];
+  await octokit
+    .paginate(octokit.rest.users.list)
+    .then((listedUsers) => {
+      for (const user of listedUsers) {
+        users.push({
+          id: user.id,
+          login: user.login,
+          node_id: user.node_id,
+          avatar_url: user.avatar_url,
+          gravatar_id: user.gravatar_id,
+          type: user.type,
+          site_admin: user.site_admin,
+        })
+      }
+    });
+  return {
+    metadata_owner: owner,
+    metadata_query: "users",
+    users: users,
+  };
+};
+
 module.exports = {
   queryActionDependencies: queryActionDependencies,
   queryBranchProtection: queryBranchProtection,
@@ -265,4 +289,5 @@ module.exports = {
   queryRepository: queryRepository,
   queryRequiredFiles: queryRequiredFiles,
   queryRenovatePRs: queryRenovatePRs,
+  queryUsers: queryUsers,
 };

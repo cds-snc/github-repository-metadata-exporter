@@ -3,6 +3,10 @@ description: GitHub action to export repository metadata to Sentinel
 author: "Canadian Digital Service"
 
 inputs:
+  get-org-data:
+    description: "Flag to get organization data"
+    required: false
+    default: "false"
   github-app-id:
     description: "GitHub App ID to call the GitHub API"
     required: true

@@ -14,12 +14,15 @@ const {
   queryRepository,
   queryRequiredFiles,
   queryRenovatePRs,
+  queryUsers,
 } = require("./lib/query.js");
 
 const prefix = "GitHubMetadata_";
 const chunkSize = 10;
 
 const action = async () => {
+  const getOrgData = core.getInput("get-org-data");
+
   const logAnalyticsWorkspaceId = core.getInput("log-analytics-workspace-id");
   const logAnalyticsWorkspaceKey = core.getInput("log-analytics-workspace-key");
 
@@ -161,6 +164,31 @@ const action = async () => {
     prefix + "ActionDependencies"
   );
   console.log("✅ ActionDependencies data sent to Azure Log Analytics");
+
+
+  // Get central repository data
+  if (getOrgData) {
+    console.log("🐿️ Getting org data");
+
+    // Get users data from org
+    const usersData = await queryUsers(octokit, owner);
+
+    for (let i = 0; i < usersData.length; i += chunkSize) {
+      const chunk = usersData.slice(i, i + chunkSize);
+      let data = {
+        users: chunk,
+      };
+
+      await postData(
+        logAnalyticsWorkspaceId,
+        logAnalyticsWorkspaceKey,
+        { ...usersData, ...data },
+        prefix + "Users"
+      );
+      console.log(`⏱️ ${chunk.length} users sent to Azure Log Analytics.`);
+    }
+    console.log("✅ Users data sent to Azure Log Analytics");
+  }
 };
 
 module.exports = {
