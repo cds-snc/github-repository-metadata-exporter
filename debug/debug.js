@@ -78,7 +78,7 @@ const run = async () => {
     const usersData = await queryUsers(octokit, owner);
     console.log("Users data");
     console.log("======================");
-    console.log(`Found ${usersData.length} users`);
+    console.log(`Found ${usersData.users.length} users`);
 };
 
 run();
