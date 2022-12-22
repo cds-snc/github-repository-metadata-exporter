@@ -165,7 +165,6 @@ const action = async () => {
   );
   console.log("✅ ActionDependencies data sent to Azure Log Analytics");
 
-
   // Get central repository data
   if (getOrgData) {
     console.log("🐿️ Getting org data");
@@ -173,8 +172,10 @@ const action = async () => {
     // Get users data from org
     const usersData = await queryUsers(octokit, owner);
 
-    for (let i = 0; i < usersData.length; i += chunkSize) {
-      const chunk = usersData.slice(i, i + chunkSize);
+    const usersDataChunks = usersData.users;
+
+    for (let i = 0; i < usersDataChunks.length; i += chunkSize) {
+      const chunk = usersDataChunks.slice(i, i + chunkSize);
       let data = {
         users: chunk,
       };

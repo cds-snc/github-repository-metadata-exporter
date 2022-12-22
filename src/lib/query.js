@@ -259,8 +259,7 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
 const queryUsers = async (octokit, owner) => {
   let users = [];
   await octokit
-    .paginate(octokit.rest.orgs.listMembers,
-      { org: owner },)
+    .paginate(octokit.rest.orgs.listMembers, { org: owner })
     .then((listedUsers) => {
       for (const user of listedUsers) {
         users.push({
@@ -271,7 +270,7 @@ const queryUsers = async (octokit, owner) => {
           gravatar_id: user.gravatar_id,
           type: user.type,
           site_admin: user.site_admin,
-        })
+        });
       }
     });
   return {
