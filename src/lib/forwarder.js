@@ -1,5 +1,7 @@
 const crypto = require("crypto");
 const superagent = require("superagent");
+const GraphemeSplitter = require("grapheme-splitter");
+const splitter = new GraphemeSplitter();
 
 const buildSignature = (
   customerId,
@@ -33,13 +35,11 @@ const buildSignature = (
 };
 
 const postData = async (customerId, sharedKey, body, logType) => {
-  body = normalizeBody(body);
-
   let method = "POST";
   let contentType = "application/json";
   let resource = "/api/logs";
   let rfc1123date = new Date().toUTCString();
-  let contentLength = body.length;
+  let contentLength = splitter.countGraphemes(JSON.stringify(body));
 
   let signature = buildSignature(
     customerId,
@@ -72,23 +72,6 @@ const postData = async (customerId, sharedKey, body, logType) => {
   return true;
 };
 
-/**
- * Remove all diacritics and emojis from the payload body.
- * This is to ensure that the data is sent to Azure Log Analytics without any issues.
- * @param {String} body content to noralize
- * @returns {String}
- */
-const normalizeBody = (body) => {
-  return JSON.stringify(body)
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .replace(
-      /(?![*#0-9]+)[\p{Emoji}\p{Emoji_Modifier}\p{Emoji_Component}\p{Emoji_Modifier_Base}\p{Emoji_Presentation}]/gu,
-      ""
-    );
-};
-
 module.exports = {
-  normalizeBody: normalizeBody,
   postData: postData,
 };
