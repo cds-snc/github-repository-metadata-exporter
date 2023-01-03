@@ -17,6 +17,7 @@ const {
   queryRepository,
   queryRequiredFiles,
   queryRenovatePRs,
+  queryUsers,
 } = require("./lib/query.js");
 
 jest.mock("@actions/core");
@@ -63,6 +64,9 @@ describe("action", () => {
     when(core.getInput)
       .calledWith("github-app-private-key")
       .mockReturnValue("github-app-private-key");
+    when(core.getInput)
+      .calledWith("org-data-repo")
+      .mockReturnValue("owner/repo");
 
     when(github.getOctokit).calledWith("token").mockReturnValue("octokit");
 
@@ -84,17 +88,25 @@ describe("action", () => {
 
     const dataSize = 75;
     const chunkSize = 10;
+
     const codeScanningData = {
       metadata_owner: "cds-snc",
       metadata_repo: "github-repository-metadata-exporter",
       metadata_query: "code_scanning_alerts",
       code_scanning_alerts: Array.from(Array(dataSize).keys()),
     };
+
     const renovatePRsData = {
       metadata_owner: "cds-snc",
       metadata_repo: "github-repository-metadata-exporter",
       metadata_query: "renovate_prs",
       renovate_prs: Array.from(Array(dataSize).keys()),
+    };
+
+    const usersData = {
+      metadata_owner: "cds-snc",
+      metadata_query: "users",
+      users: Array.from(Array(dataSize).keys()),
     };
 
     when(queryCodeScanningAlerts)
@@ -108,6 +120,8 @@ describe("action", () => {
     when(queryActionDependencies)
       .calledWith("owner", "repo")
       .mockReturnValue(sampleData);
+
+    when(queryUsers).calledWith("octokit", "owner").mockReturnValue(usersData);
 
     await action();
 
@@ -199,5 +213,19 @@ describe("action", () => {
       sampleData,
       "GitHubMetadata_ActionDependencies"
     );
+
+    expect(queryUsers).toHaveBeenCalled();
+    for (let index = 0; index < dataSize; index += chunkSize) {
+      expect(postData).toHaveBeenCalledWith(
+        "log-analytics-workspace-id",
+        "log-analytics-workspace-key",
+        {
+          metadata_owner: "cds-snc",
+          metadata_query: "users",
+          users: usersData.users.slice(index, index + chunkSize),
+        },
+        "GitHubMetadata_Users"
+      );
+    }
   });
 });

@@ -17,3 +17,4 @@ jobs:
           github-app-private-key: ${{ secrets.SRE_BOT_RO_PRIVATE_KEY }}
           log-analytics-workspace-id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
           log-analytics-workspace-key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
+          org-data-repo: "cds-snc/github-repository-metadata-exporter" # This should only be set to true in one repo

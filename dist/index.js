@@ -32700,6 +32700,7 @@ const {
   queryRepository,
   queryRequiredFiles,
   queryRenovatePRs,
+  queryUsers,
 } = __nccwpck_require__(4194);
 
 const prefix = "GitHubMetadata_";
@@ -32712,6 +32713,8 @@ const action = async () => {
   const githubAppId = core.getInput("github-app-id");
   const githubAppInstallationId = core.getInput("github-app-installation-id");
   const githubAppPrivateKey = core.getInput("github-app-private-key");
+
+  const orgDataRepo = core.getInput("org-data-repo");
 
   const auth = createAppAuth({
     appId: githubAppId,
@@ -32847,6 +32850,32 @@ const action = async () => {
     prefix + "ActionDependencies"
   );
   console.log("✅ ActionDependencies data sent to Azure Log Analytics");
+
+  // Get central repository data if current repo is org data repo
+  if (orgDataRepo == `${owner}/${repo}`) {
+    console.log("🐿️ Getting org data");
+
+    // Get users data from org
+    const usersData = await queryUsers(octokit, owner);
+
+    const usersDataChunks = usersData.users;
+
+    for (let i = 0; i < usersDataChunks.length; i += chunkSize) {
+      const chunk = usersDataChunks.slice(i, i + chunkSize);
+      let data = {
+        users: chunk,
+      };
+
+      await postData(
+        logAnalyticsWorkspaceId,
+        logAnalyticsWorkspaceKey,
+        { ...usersData, ...data },
+        prefix + "Users"
+      );
+      console.log(`⏱️ ${chunk.length} users sent to Azure Log Analytics.`);
+    }
+    console.log("✅ Users data sent to Azure Log Analytics");
+  }
 };
 
 module.exports = {
@@ -33218,6 +33247,30 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
   };
 };
 
+const queryUsers = async (octokit, owner) => {
+  let users = [];
+  await octokit
+    .paginate(octokit.rest.orgs.listMembers, { org: owner })
+    .then((listedUsers) => {
+      for (const user of listedUsers) {
+        users.push({
+          id: user.id,
+          login: user.login,
+          node_id: user.node_id,
+          avatar_url: user.avatar_url,
+          gravatar_id: user.gravatar_id,
+          type: user.type,
+          site_admin: user.site_admin,
+        });
+      }
+    });
+  return {
+    metadata_owner: owner,
+    metadata_query: "users",
+    users: users,
+  };
+};
+
 module.exports = {
   queryActionDependencies: queryActionDependencies,
   queryBranchProtection: queryBranchProtection,
@@ -33227,6 +33280,7 @@ module.exports = {
   queryRepository: queryRepository,
   queryRequiredFiles: queryRequiredFiles,
   queryRenovatePRs: queryRenovatePRs,
+  queryUsers: queryUsers,
 };
 
 

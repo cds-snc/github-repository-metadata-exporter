@@ -18,6 +18,9 @@ inputs:
   log-analytics-workspace-key:
     description: "Azure Log Analytics Workspace Key"
     required: true
+  org-data-repo:
+    description: "{owner}/{repo} that collects org data"
+    required: false
 
 runs:
   using: "node16"

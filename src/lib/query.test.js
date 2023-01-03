@@ -11,6 +11,7 @@ const {
   queryRepository,
   queryRequiredFiles,
   queryRenovatePRs,
+  queryUsers,
 } = require("./query.js");
 
 describe("queryActionDependencies", () => {
@@ -518,6 +519,60 @@ describe("queryRequiredFiles", () => {
       metadata_owner: "owner",
       metadata_repo: "repo",
       metadata_query: "required_files",
+    });
+  });
+});
+
+describe("queryUsers", () => {
+  test("returns org user data if the request succeeds", async () => {
+    const response = {
+      status: 200,
+      data: [
+        {
+          id: "123",
+          login: "login",
+          node_id: "node_id",
+          avatar_url: "avatar_url",
+          gravatar_id: "gravatar_id",
+          type: "type",
+          site_admin: "site_admin",
+        },
+        {
+          id: "456",
+          login: "login",
+          node_id: "node_id",
+          avatar_url: "avatar_url",
+          gravatar_id: "gravatar_id",
+          type: "type",
+          site_admin: "site_admin",
+        },
+      ],
+    };
+
+    const octokit = {
+      paginate: () =>
+        new Promise((resolve) => {
+          resolve(response.data);
+        }),
+      rest: {
+        orgs: {
+          listMembers: jest.fn(),
+        },
+      },
+    };
+
+    const owner = "owner";
+
+    when(octokit.rest.orgs.listMembers)
+      .calledWith({ orgs: owner })
+      .mockReturnValue(response);
+
+    const result = await queryUsers(octokit, owner);
+
+    expect(result).toEqual({
+      users: response.data,
+      metadata_owner: "owner",
+      metadata_query: "users",
     });
   });
 });

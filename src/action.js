@@ -14,6 +14,7 @@ const {
   queryRepository,
   queryRequiredFiles,
   queryRenovatePRs,
+  queryUsers,
 } = require("./lib/query.js");
 
 const prefix = "GitHubMetadata_";
@@ -26,6 +27,8 @@ const action = async () => {
   const githubAppId = core.getInput("github-app-id");
   const githubAppInstallationId = core.getInput("github-app-installation-id");
   const githubAppPrivateKey = core.getInput("github-app-private-key");
+
+  const orgDataRepo = core.getInput("org-data-repo");
 
   const auth = createAppAuth({
     appId: githubAppId,
@@ -161,6 +164,32 @@ const action = async () => {
     prefix + "ActionDependencies"
   );
   console.log("✅ ActionDependencies data sent to Azure Log Analytics");
+
+  // Get central repository data if current repo is org data repo
+  if (orgDataRepo == `${owner}/${repo}`) {
+    console.log("🐿️ Getting org data");
+
+    // Get users data from org
+    const usersData = await queryUsers(octokit, owner);
+
+    const usersDataChunks = usersData.users;
+
+    for (let i = 0; i < usersDataChunks.length; i += chunkSize) {
+      const chunk = usersDataChunks.slice(i, i + chunkSize);
+      let data = {
+        users: chunk,
+      };
+
+      await postData(
+        logAnalyticsWorkspaceId,
+        logAnalyticsWorkspaceKey,
+        { ...usersData, ...data },
+        prefix + "Users"
+      );
+      console.log(`⏱️ ${chunk.length} users sent to Azure Log Analytics.`);
+    }
+    console.log("✅ Users data sent to Azure Log Analytics");
+  }
 };
 
 module.exports = {
