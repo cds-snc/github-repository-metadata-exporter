@@ -2,7 +2,7 @@
 
 const superagent = require("superagent");
 
-const { normalizeBody, postData } = require("./forwarder.js");
+const { postData } = require("./forwarder.js");
 
 jest.mock("superagent");
 
