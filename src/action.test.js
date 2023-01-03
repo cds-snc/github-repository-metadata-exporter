@@ -49,7 +49,6 @@ describe("action", () => {
       id: "123",
     };
 
-    when(core.getInput).calledWith("get-org-data").mockReturnValue(true);
     when(core.getInput)
       .calledWith("log-analytics-workspace-id")
       .mockReturnValue("log-analytics-workspace-id");
@@ -65,6 +64,9 @@ describe("action", () => {
     when(core.getInput)
       .calledWith("github-app-private-key")
       .mockReturnValue("github-app-private-key");
+    when(core.getInput)
+      .calledWith("org-data-repo")
+      .mockReturnValue("owner/repo");
 
     when(github.getOctokit).calledWith("token").mockReturnValue("octokit");
 

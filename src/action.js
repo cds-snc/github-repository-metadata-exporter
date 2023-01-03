@@ -21,14 +21,14 @@ const prefix = "GitHubMetadata_";
 const chunkSize = 10;
 
 const action = async () => {
-  const getOrgData = core.getInput("get-org-data");
-
   const logAnalyticsWorkspaceId = core.getInput("log-analytics-workspace-id");
   const logAnalyticsWorkspaceKey = core.getInput("log-analytics-workspace-key");
 
   const githubAppId = core.getInput("github-app-id");
   const githubAppInstallationId = core.getInput("github-app-installation-id");
   const githubAppPrivateKey = core.getInput("github-app-private-key");
+
+  const orgDataRepo = core.getInput("org-data-repo");
 
   const auth = createAppAuth({
     appId: githubAppId,
@@ -165,8 +165,8 @@ const action = async () => {
   );
   console.log("✅ ActionDependencies data sent to Azure Log Analytics");
 
-  // Get central repository data
-  if (getOrgData) {
+  // Get central repository data if current repo is org data repo
+  if (orgDataRepo == `${owner}/${repo}`) {
     console.log("🐿️ Getting org data");
 
     // Get users data from org

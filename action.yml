@@ -3,10 +3,6 @@ description: GitHub action to export repository metadata to Sentinel
 author: "Canadian Digital Service"
 
 inputs:
-  get-org-data:
-    description: "Flag to get organization data"
-    required: false
-    default: "false"
   github-app-id:
     description: "GitHub App ID to call the GitHub API"
     required: true
@@ -22,6 +18,9 @@ inputs:
   log-analytics-workspace-key:
     description: "Azure Log Analytics Workspace Key"
     required: true
+  org-data-repo:
+    description: "{owner}/{repo} that collects org data"
+    required: false
 
 runs:
   using: "node16"
