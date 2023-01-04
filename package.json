@@ -37,7 +37,6 @@
     "@actions/core": "^1.10.0",
     "@actions/github": "^5.1.1",
     "@octokit/auth-app": "^4.0.7",
-    "grapheme-splitter": "^1.0.4",
     "superagent": "^8.0.5"
   },
   "overrides": {

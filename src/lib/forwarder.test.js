@@ -2,7 +2,7 @@
 
 const superagent = require("superagent");
 
-const { postData } = require("./forwarder.js");
+const { postData, jsonEscapeUTF } = require("./forwarder.js");
 
 jest.mock("superagent");
 
@@ -53,5 +53,26 @@ describe("postData", () => {
     ).rejects.toThrow(
       `Error posting data to Azure Log Analytics: ${response.status}`
     );
+  });
+});
+
+describe("jsonEscapeUTF", () => {
+  test("escapes the string", () => {
+    const data = {
+      id: "123",
+    };
+
+    const result = jsonEscapeUTF(JSON.stringify(data));
+    expect(result).toEqual('{"id":"123"}');
+  });
+
+  test("escapes the string with a unicode character", () => {
+    const data = {
+      id: "123",
+      name: "🤖",
+    };
+
+    const result = jsonEscapeUTF(JSON.stringify(data));
+    expect(result).toEqual('{"id":"123","name":"\\ud83e\\udd16"}');
   });
 });

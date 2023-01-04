@@ -1,7 +1,5 @@
 const crypto = require("crypto");
 const superagent = require("superagent");
-const GraphemeSplitter = require("grapheme-splitter");
-const splitter = new GraphemeSplitter();
 
 const buildSignature = (
   customerId,
@@ -39,7 +37,7 @@ const postData = async (customerId, sharedKey, body, logType) => {
   let contentType = "application/json";
   let resource = "/api/logs";
   let rfc1123date = new Date().toUTCString();
-  let contentLength = splitter.countGraphemes(JSON.stringify(body));
+  let contentLength = jsonEscapeUTF(JSON.stringify(body)).length;
 
   let signature = buildSignature(
     customerId,
@@ -72,6 +70,14 @@ const postData = async (customerId, sharedKey, body, logType) => {
   return true;
 };
 
+function jsonEscapeUTF(s) {
+  return s.replace(
+    /[^\x20-\x7F]/g,
+    (x) => "\\u" + ("000" + x.codePointAt(0).toString(16)).slice(-4)
+  );
+}
+
 module.exports = {
+  jsonEscapeUTF: jsonEscapeUTF,
   postData: postData,
 };
