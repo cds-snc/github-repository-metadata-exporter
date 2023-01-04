@@ -33,7 +33,7 @@ const buildSignature = (
 };
 
 const postData = async (customerId, sharedKey, body, logType) => {
-  body = jsonEscapeUTF(JSON.stringify(body))
+  body = jsonEscapeUTF(JSON.stringify(body));
   let method = "POST";
   let contentType = "application/json";
   let resource = "/api/logs";
