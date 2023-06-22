@@ -2476,20 +2476,51 @@ function createAppAuth(options) {
 /***/ }),
 
 /***/ 8459:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
+// pkg/dist-src/index.js
+var dist_src_exports = {};
+__export(dist_src_exports, {
+  createOAuthAppAuth: () => createOAuthAppAuth,
+  createOAuthUserAuth: () => import_auth_oauth_user3.createOAuthUserAuth
+});
+module.exports = __toCommonJS(dist_src_exports);
+var import_universal_user_agent = __nccwpck_require__(5030);
+var import_request = __nccwpck_require__(6234);
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var universalUserAgent = __nccwpck_require__(5030);
-var request = __nccwpck_require__(6234);
-var btoa = _interopDefault(__nccwpck_require__(2358));
-var authOauthUser = __nccwpck_require__(1591);
-
+// pkg/dist-src/auth.js
+var import_btoa_lite = __toESM(__nccwpck_require__(2358));
+var import_auth_oauth_user = __nccwpck_require__(1591);
 async function auth(state, authOptions) {
   if (authOptions.type === "oauth-app") {
     return {
@@ -2498,19 +2529,17 @@ async function auth(state, authOptions) {
       clientSecret: state.clientSecret,
       clientType: state.clientType,
       headers: {
-        authorization: `basic ${btoa(`${state.clientId}:${state.clientSecret}`)}`
+        authorization: `basic ${(0, import_btoa_lite.default)(
+          `${state.clientId}:${state.clientSecret}`
+        )}`
       }
     };
   }
   if ("factory" in authOptions) {
-    const {
-      type,
-      ...options
-    } = {
+    const { type, ...options } = {
       ...authOptions,
       ...state
     };
-    // @ts-expect-error TODO: `option` cannot be never, is this a bug?
     return authOptions.factory(options);
   }
   const common = {
@@ -2519,115 +2548,143 @@ async function auth(state, authOptions) {
     request: state.request,
     ...authOptions
   };
-  // TS: Look what you made me do
-  const userAuth = state.clientType === "oauth-app" ? await authOauthUser.createOAuthUserAuth({
+  const userAuth = state.clientType === "oauth-app" ? await (0, import_auth_oauth_user.createOAuthUserAuth)({
     ...common,
     clientType: state.clientType
-  }) : await authOauthUser.createOAuthUserAuth({
+  }) : await (0, import_auth_oauth_user.createOAuthUserAuth)({
     ...common,
     clientType: state.clientType
   });
   return userAuth();
 }
 
-async function hook(state, request, route, parameters) {
-  let endpoint = request.endpoint.merge(route, parameters);
-  // Do not intercept OAuth Web/Device flow request
+// pkg/dist-src/hook.js
+var import_btoa_lite2 = __toESM(__nccwpck_require__(2358));
+var import_auth_oauth_user2 = __nccwpck_require__(1591);
+async function hook(state, request2, route, parameters) {
+  let endpoint = request2.endpoint.merge(
+    route,
+    parameters
+  );
   if (/\/login\/(oauth\/access_token|device\/code)$/.test(endpoint.url)) {
-    return request(endpoint);
+    return request2(endpoint);
   }
-  if (state.clientType === "github-app" && !authOauthUser.requiresBasicAuth(endpoint.url)) {
-    throw new Error(`[@octokit/auth-oauth-app] GitHub Apps cannot use their client ID/secret for basic authentication for endpoints other than "/applications/{client_id}/**". "${endpoint.method} ${endpoint.url}" is not supported.`);
+  if (state.clientType === "github-app" && !(0, import_auth_oauth_user2.requiresBasicAuth)(endpoint.url)) {
+    throw new Error(
+      `[@octokit/auth-oauth-app] GitHub Apps cannot use their client ID/secret for basic authentication for endpoints other than "/applications/{client_id}/**". "${endpoint.method} ${endpoint.url}" is not supported.`
+    );
   }
-  const credentials = btoa(`${state.clientId}:${state.clientSecret}`);
+  const credentials = (0, import_btoa_lite2.default)(`${state.clientId}:${state.clientSecret}`);
   endpoint.headers.authorization = `basic ${credentials}`;
   try {
-    return await request(endpoint);
+    return await request2(endpoint);
   } catch (error) {
-    /* istanbul ignore if */
-    if (error.status !== 401) throw error;
+    if (error.status !== 401)
+      throw error;
     error.message = `[@octokit/auth-oauth-app] "${endpoint.method} ${endpoint.url}" does not support clientId/clientSecret basic authentication.`;
     throw error;
   }
 }
 
-const VERSION = "5.0.5";
+// pkg/dist-src/version.js
+var VERSION = "5.0.6";
 
+// pkg/dist-src/index.js
+var import_auth_oauth_user3 = __nccwpck_require__(1591);
 function createOAuthAppAuth(options) {
-  const state = Object.assign({
-    request: request.request.defaults({
-      headers: {
-        "user-agent": `octokit-auth-oauth-app.js/${VERSION} ${universalUserAgent.getUserAgent()}`
-      }
-    }),
-    clientType: "oauth-app"
-  }, options);
-  // @ts-expect-error not worth the extra code to appease TS
+  const state = Object.assign(
+    {
+      request: import_request.request.defaults({
+        headers: {
+          "user-agent": `octokit-auth-oauth-app.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`
+        }
+      }),
+      clientType: "oauth-app"
+    },
+    options
+  );
   return Object.assign(auth.bind(null, state), {
     hook: hook.bind(null, state)
   });
 }
-
-Object.defineProperty(exports, "createOAuthUserAuth", ({
-    enumerable: true,
-    get: function () {
-        return authOauthUser.createOAuthUserAuth;
-    }
-}));
-exports.createOAuthAppAuth = createOAuthAppAuth;
-//# sourceMappingURL=index.js.map
+// Annotate the CommonJS export names for ESM import in node:
+0 && (0);
 
 
 /***/ }),
 
 /***/ 4344:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
+// pkg/dist-src/index.js
+var dist_src_exports = {};
+__export(dist_src_exports, {
+  createOAuthDeviceAuth: () => createOAuthDeviceAuth
+});
+module.exports = __toCommonJS(dist_src_exports);
+var import_universal_user_agent = __nccwpck_require__(5030);
+var import_request = __nccwpck_require__(6234);
 
-var universalUserAgent = __nccwpck_require__(5030);
-var request = __nccwpck_require__(6234);
-var oauthMethods = __nccwpck_require__(8445);
-
+// pkg/dist-src/get-oauth-access-token.js
+var import_oauth_methods = __nccwpck_require__(8445);
 async function getOAuthAccessToken(state, options) {
   const cachedAuthentication = getCachedAuthentication(state, options.auth);
-  if (cachedAuthentication) return cachedAuthentication;
-  // Step 1: Request device and user codes
-  // https://docs.github.com/en/developers/apps/authorizing-oauth-apps#step-1-app-requests-the-device-and-user-verification-codes-from-github
-  const {
-    data: verification
-  } = await oauthMethods.createDeviceCode({
+  if (cachedAuthentication)
+    return cachedAuthentication;
+  const { data: verification } = await (0, import_oauth_methods.createDeviceCode)({
     clientType: state.clientType,
     clientId: state.clientId,
     request: options.request || state.request,
     // @ts-expect-error the extra code to make TS happy is not worth it
     scopes: options.auth.scopes || state.scopes
   });
-  // Step 2: User must enter the user code on https://github.com/login/device
-  // See https://docs.github.com/en/developers/apps/authorizing-oauth-apps#step-2-prompt-the-user-to-enter-the-user-code-in-a-browser
   await state.onVerification(verification);
-  // Step 3: Exchange device code for access token
-  // See https://docs.github.com/en/developers/apps/authorizing-oauth-apps#step-3-app-polls-github-to-check-if-the-user-authorized-the-device
-  const authentication = await waitForAccessToken(options.request || state.request, state.clientId, state.clientType, verification);
+  const authentication = await waitForAccessToken(
+    options.request || state.request,
+    state.clientId,
+    state.clientType,
+    verification
+  );
   state.authentication = authentication;
   return authentication;
 }
-function getCachedAuthentication(state, auth) {
-  if (auth.refresh === true) return false;
-  if (!state.authentication) return false;
+function getCachedAuthentication(state, auth2) {
+  if (auth2.refresh === true)
+    return false;
+  if (!state.authentication)
+    return false;
   if (state.clientType === "github-app") {
     return state.authentication;
   }
   const authentication = state.authentication;
-  const newScope = ("scopes" in auth && auth.scopes || state.scopes).join(" ");
+  const newScope = ("scopes" in auth2 && auth2.scopes || state.scopes).join(
+    " "
+  );
   const currentScope = authentication.scopes.join(" ");
   return newScope === currentScope ? authentication : false;
 }
 async function wait(seconds) {
-  await new Promise(resolve => setTimeout(resolve, seconds * 1000));
+  await new Promise((resolve) => setTimeout(resolve, seconds * 1e3));
 }
 async function waitForAccessToken(request, clientId, clientType, verification) {
   try {
@@ -2636,13 +2693,10 @@ async function waitForAccessToken(request, clientId, clientType, verification) {
       request,
       code: verification.device_code
     };
-    // WHY TYPESCRIPT WHY ARE YOU DOING THIS TO ME
-    const {
-      authentication
-    } = clientType === "oauth-app" ? await oauthMethods.exchangeDeviceCode({
+    const { authentication } = clientType === "oauth-app" ? await (0, import_oauth_methods.exchangeDeviceCode)({
       ...options,
       clientType: "oauth-app"
-    }) : await oauthMethods.exchangeDeviceCode({
+    }) : await (0, import_oauth_methods.exchangeDeviceCode)({
       ...options,
       clientType: "github-app"
     });
@@ -2652,10 +2706,8 @@ async function waitForAccessToken(request, clientId, clientType, verification) {
       ...authentication
     };
   } catch (error) {
-    // istanbul ignore if
-    // @ts-ignore
-    if (!error.response) throw error;
-    // @ts-ignore
+    if (!error.response)
+      throw error;
     const errorType = error.response.data.error;
     if (errorType === "authorization_pending") {
       await wait(verification.interval);
@@ -2669,95 +2721,123 @@ async function waitForAccessToken(request, clientId, clientType, verification) {
   }
 }
 
+// pkg/dist-src/auth.js
 async function auth(state, authOptions) {
   return getOAuthAccessToken(state, {
     auth: authOptions
   });
 }
 
+// pkg/dist-src/hook.js
 async function hook(state, request, route, parameters) {
-  let endpoint = request.endpoint.merge(route, parameters);
-  // Do not intercept request to retrieve codes or token
+  let endpoint = request.endpoint.merge(
+    route,
+    parameters
+  );
   if (/\/login\/(oauth\/access_token|device\/code)$/.test(endpoint.url)) {
     return request(endpoint);
   }
-  const {
-    token
-  } = await getOAuthAccessToken(state, {
+  const { token } = await getOAuthAccessToken(state, {
     request,
-    auth: {
-      type: "oauth"
-    }
+    auth: { type: "oauth" }
   });
   endpoint.headers.authorization = `token ${token}`;
   return request(endpoint);
 }
 
-const VERSION = "4.0.4";
+// pkg/dist-src/version.js
+var VERSION = "4.0.5";
 
+// pkg/dist-src/index.js
 function createOAuthDeviceAuth(options) {
-  const requestWithDefaults = options.request || request.request.defaults({
+  const requestWithDefaults = options.request || import_request.request.defaults({
     headers: {
-      "user-agent": `octokit-auth-oauth-device.js/${VERSION} ${universalUserAgent.getUserAgent()}`
+      "user-agent": `octokit-auth-oauth-device.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`
     }
   });
-  const {
-    request: request$1 = requestWithDefaults,
-    ...otherOptions
-  } = options;
+  const { request = requestWithDefaults, ...otherOptions } = options;
   const state = options.clientType === "github-app" ? {
     ...otherOptions,
     clientType: "github-app",
-    request: request$1
+    request
   } : {
     ...otherOptions,
     clientType: "oauth-app",
-    request: request$1,
+    request,
     scopes: options.scopes || []
   };
   if (!options.clientId) {
-    throw new Error('[@octokit/auth-oauth-device] "clientId" option must be set (https://github.com/octokit/auth-oauth-device.js#usage)');
+    throw new Error(
+      '[@octokit/auth-oauth-device] "clientId" option must be set (https://github.com/octokit/auth-oauth-device.js#usage)'
+    );
   }
   if (!options.onVerification) {
-    throw new Error('[@octokit/auth-oauth-device] "onVerification" option must be a function (https://github.com/octokit/auth-oauth-device.js#usage)');
+    throw new Error(
+      '[@octokit/auth-oauth-device] "onVerification" option must be a function (https://github.com/octokit/auth-oauth-device.js#usage)'
+    );
   }
-  // @ts-ignore too much for tsc / ts-jest ¯\_(ツ)_/¯
   return Object.assign(auth.bind(null, state), {
     hook: hook.bind(null, state)
   });
 }
-
-exports.createOAuthDeviceAuth = createOAuthDeviceAuth;
-//# sourceMappingURL=index.js.map
+// Annotate the CommonJS export names for ESM import in node:
+0 && (0);
 
 
 /***/ }),
 
 /***/ 1591:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
+// pkg/dist-src/index.js
+var dist_src_exports = {};
+__export(dist_src_exports, {
+  createOAuthUserAuth: () => createOAuthUserAuth,
+  requiresBasicAuth: () => requiresBasicAuth
+});
+module.exports = __toCommonJS(dist_src_exports);
+var import_universal_user_agent = __nccwpck_require__(5030);
+var import_request = __nccwpck_require__(6234);
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+// pkg/dist-src/version.js
+var VERSION = "2.1.2";
 
-var universalUserAgent = __nccwpck_require__(5030);
-var request = __nccwpck_require__(6234);
-var authOauthDevice = __nccwpck_require__(4344);
-var oauthMethods = __nccwpck_require__(8445);
-var btoa = _interopDefault(__nccwpck_require__(2358));
-
-const VERSION = "2.1.1";
-
-// @ts-nocheck there is only place for one of us in this file. And it's not you, TS
+// pkg/dist-src/get-authentication.js
+var import_auth_oauth_device = __nccwpck_require__(4344);
+var import_oauth_methods = __nccwpck_require__(8445);
 async function getAuthentication(state) {
-  // handle code exchange form OAuth Web Flow
   if ("code" in state.strategyOptions) {
-    const {
-      authentication
-    } = await oauthMethods.exchangeWebFlowCode({
+    const { authentication } = await (0, import_oauth_methods.exchangeWebFlowCode)({
       clientId: state.clientId,
       clientSecret: state.clientSecret,
       clientType: state.clientType,
@@ -2771,9 +2851,8 @@ async function getAuthentication(state) {
       ...authentication
     };
   }
-  // handle OAuth device flow
   if ("onVerification" in state.strategyOptions) {
-    const deviceAuth = authOauthDevice.createOAuthDeviceAuth({
+    const deviceAuth = (0, import_auth_oauth_device.createOAuthDeviceAuth)({
       clientType: state.clientType,
       clientId: state.clientId,
       onTokenCreated: state.onTokenCreated,
@@ -2788,7 +2867,6 @@ async function getAuthentication(state) {
       ...authentication
     };
   }
-  // use existing authentication
   if ("token" in state.strategyOptions) {
     return {
       type: "token",
@@ -2803,21 +2881,20 @@ async function getAuthentication(state) {
   throw new Error("[@octokit/auth-oauth-user] Invalid strategy options");
 }
 
+// pkg/dist-src/auth.js
+var import_oauth_methods2 = __nccwpck_require__(8445);
 async function auth(state, options = {}) {
+  var _a, _b;
   if (!state.authentication) {
-    // This is what TS makes us do ¯\_(ツ)_/¯
     state.authentication = state.clientType === "oauth-app" ? await getAuthentication(state) : await getAuthentication(state);
   }
   if (state.authentication.invalid) {
     throw new Error("[@octokit/auth-oauth-user] Token is invalid");
   }
   const currentAuthentication = state.authentication;
-  // (auto) refresh for user-to-server tokens
   if ("expiresAt" in currentAuthentication) {
-    if (options.type === "refresh" || new Date(currentAuthentication.expiresAt) < new Date()) {
-      const {
-        authentication
-      } = await oauthMethods.refreshToken({
+    if (options.type === "refresh" || new Date(currentAuthentication.expiresAt) < /* @__PURE__ */ new Date()) {
+      const { authentication } = await (0, import_oauth_methods2.refreshToken)({
         clientType: "github-app",
         clientId: state.clientId,
         clientSecret: state.clientSecret,
@@ -2831,26 +2908,23 @@ async function auth(state, options = {}) {
       };
     }
   }
-  // throw error for invalid refresh call
   if (options.type === "refresh") {
-    var _state$onTokenCreated;
     if (state.clientType === "oauth-app") {
-      throw new Error("[@octokit/auth-oauth-user] OAuth Apps do not support expiring tokens");
+      throw new Error(
+        "[@octokit/auth-oauth-user] OAuth Apps do not support expiring tokens"
+      );
     }
     if (!currentAuthentication.hasOwnProperty("expiresAt")) {
       throw new Error("[@octokit/auth-oauth-user] Refresh token missing");
     }
-    await ((_state$onTokenCreated = state.onTokenCreated) === null || _state$onTokenCreated === void 0 ? void 0 : _state$onTokenCreated.call(state, state.authentication, {
+    await ((_a = state.onTokenCreated) == null ? void 0 : _a.call(state, state.authentication, {
       type: options.type
     }));
   }
-  // check or reset token
   if (options.type === "check" || options.type === "reset") {
-    const method = options.type === "check" ? oauthMethods.checkToken : oauthMethods.resetToken;
+    const method = options.type === "check" ? import_oauth_methods2.checkToken : import_oauth_methods2.resetToken;
     try {
-      const {
-        authentication
-      } = await method({
+      const { authentication } = await method({
         // @ts-expect-error making TS happy would require unnecessary code so no
         clientType: state.clientType,
         clientId: state.clientId,
@@ -2865,25 +2939,21 @@ async function auth(state, options = {}) {
         ...authentication
       };
       if (options.type === "reset") {
-        var _state$onTokenCreated2;
-        await ((_state$onTokenCreated2 = state.onTokenCreated) === null || _state$onTokenCreated2 === void 0 ? void 0 : _state$onTokenCreated2.call(state, state.authentication, {
+        await ((_b = state.onTokenCreated) == null ? void 0 : _b.call(state, state.authentication, {
           type: options.type
         }));
       }
       return state.authentication;
     } catch (error) {
-      // istanbul ignore else
       if (error.status === 404) {
         error.message = "[@octokit/auth-oauth-user] Token is invalid";
-        // @ts-expect-error TBD
         state.authentication.invalid = true;
       }
       throw error;
     }
   }
-  // invalidate
   if (options.type === "delete" || options.type === "deleteAuthorization") {
-    const method = options.type === "delete" ? oauthMethods.deleteToken : oauthMethods.deleteAuthorization;
+    const method = options.type === "delete" ? import_oauth_methods2.deleteToken : import_oauth_methods2.deleteAuthorization;
     try {
       await method({
         // @ts-expect-error making TS happy would require unnecessary code so no
@@ -2894,8 +2964,8 @@ async function auth(state, options = {}) {
         request: state.request
       });
     } catch (error) {
-      // istanbul ignore if
-      if (error.status !== 404) throw error;
+      if (error.status !== 404)
+        throw error;
     }
     state.authentication.invalid = true;
     return state.authentication;
@@ -2903,59 +2973,42 @@ async function auth(state, options = {}) {
   return state.authentication;
 }
 
-/**
- * The following endpoints require an OAuth App to authenticate using its client_id and client_secret.
- *
- * - [`POST /applications/{client_id}/token`](https://docs.github.com/en/rest/reference/apps#check-a-token) - Check a token
- * - [`PATCH /applications/{client_id}/token`](https://docs.github.com/en/rest/reference/apps#reset-a-token) - Reset a token
- * - [`POST /applications/{client_id}/token/scoped`](https://docs.github.com/en/rest/reference/apps#create-a-scoped-access-token) - Create a scoped access token
- * - [`DELETE /applications/{client_id}/token`](https://docs.github.com/en/rest/reference/apps#delete-an-app-token) - Delete an app token
- * - [`DELETE /applications/{client_id}/grant`](https://docs.github.com/en/rest/reference/apps#delete-an-app-authorization) - Delete an app authorization
- *
- * deprecated:
- *
- * - [`GET /applications/{client_id}/tokens/{access_token}`](https://docs.github.com/en/rest/reference/apps#check-an-authorization) - Check an authorization
- * - [`POST /applications/{client_id}/tokens/{access_token}`](https://docs.github.com/en/rest/reference/apps#reset-an-authorization) - Reset an authorization
- * - [`DELETE /applications/{client_id}/tokens/{access_token}`](https://docs.github.com/en/rest/reference/apps#revoke-an-authorization-for-an-application) - Revoke an authorization for an application
- * - [`DELETE /applications/{client_id}/grants/{access_token}`](https://docs.github.com/en/rest/reference/apps#revoke-a-grant-for-an-application) - Revoke a grant for an application
- */
-const ROUTES_REQUIRING_BASIC_AUTH = /\/applications\/[^/]+\/(token|grant)s?/;
+// pkg/dist-src/hook.js
+var import_btoa_lite = __toESM(__nccwpck_require__(2358));
+
+// pkg/dist-src/requires-basic-auth.js
+var ROUTES_REQUIRING_BASIC_AUTH = /\/applications\/[^/]+\/(token|grant)s?/;
 function requiresBasicAuth(url) {
   return url && ROUTES_REQUIRING_BASIC_AUTH.test(url);
 }
 
+// pkg/dist-src/hook.js
 async function hook(state, request, route, parameters = {}) {
-  const endpoint = request.endpoint.merge(route, parameters);
-  // Do not intercept OAuth Web/Device flow request
+  const endpoint = request.endpoint.merge(
+    route,
+    parameters
+  );
   if (/\/login\/(oauth\/access_token|device\/code)$/.test(endpoint.url)) {
     return request(endpoint);
   }
   if (requiresBasicAuth(endpoint.url)) {
-    const credentials = btoa(`${state.clientId}:${state.clientSecret}`);
+    const credentials = (0, import_btoa_lite.default)(`${state.clientId}:${state.clientSecret}`);
     endpoint.headers.authorization = `basic ${credentials}`;
     return request(endpoint);
   }
-  // TS makes us do this ¯\_(ツ)_/¯
-  const {
-    token
-  } = state.clientType === "oauth-app" ? await auth({
-    ...state,
-    request
-  }) : await auth({
-    ...state,
-    request
-  });
+  const { token } = state.clientType === "oauth-app" ? await auth({ ...state, request }) : await auth({ ...state, request });
   endpoint.headers.authorization = "token " + token;
   return request(endpoint);
 }
 
+// pkg/dist-src/index.js
 function createOAuthUserAuth({
   clientId,
   clientSecret,
   clientType = "oauth-app",
-  request: request$1 = request.request.defaults({
+  request = import_request.request.defaults({
     headers: {
-      "user-agent": `octokit-auth-oauth-app.js/${VERSION} ${universalUserAgent.getUserAgent()}`
+      "user-agent": `octokit-auth-oauth-app.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`
     }
   }),
   onTokenCreated,
@@ -2967,19 +3020,16 @@ function createOAuthUserAuth({
     clientSecret,
     onTokenCreated,
     strategyOptions,
-    request: request$1
+    request
   });
-  // @ts-expect-error not worth the extra code needed to appease TS
   return Object.assign(auth.bind(null, state), {
     // @ts-expect-error not worth the extra code needed to appease TS
     hook: hook.bind(null, state)
   });
 }
 createOAuthUserAuth.VERSION = VERSION;
-
-exports.createOAuthUserAuth = createOAuthUserAuth;
-exports.requiresBasicAuth = requiresBasicAuth;
-//# sourceMappingURL=index.js.map
+// Annotate the CommonJS export names for ESM import in node:
+0 && (0);
 
 
 /***/ }),
@@ -3897,16 +3947,36 @@ exports.request = request;
 /***/ }),
 
 /***/ 9440:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
+// pkg/dist-src/index.js
+var dist_src_exports = {};
+__export(dist_src_exports, {
+  endpoint: () => endpoint
+});
+module.exports = __toCommonJS(dist_src_exports);
 
-var isPlainObject = __nccwpck_require__(3287);
-var universalUserAgent = __nccwpck_require__(5030);
-
+// pkg/dist-src/util/lowercase-keys.js
 function lowercaseKeys(object) {
   if (!object) {
     return {};
@@ -3917,64 +3987,62 @@ function lowercaseKeys(object) {
   }, {});
 }
 
+// pkg/dist-src/util/merge-deep.js
+var import_is_plain_object = __nccwpck_require__(3287);
 function mergeDeep(defaults, options) {
   const result = Object.assign({}, defaults);
-  Object.keys(options).forEach(key => {
-    if (isPlainObject.isPlainObject(options[key])) {
-      if (!(key in defaults)) Object.assign(result, {
-        [key]: options[key]
-      });else result[key] = mergeDeep(defaults[key], options[key]);
+  Object.keys(options).forEach((key) => {
+    if ((0, import_is_plain_object.isPlainObject)(options[key])) {
+      if (!(key in defaults))
+        Object.assign(result, { [key]: options[key] });
+      else
+        result[key] = mergeDeep(defaults[key], options[key]);
     } else {
-      Object.assign(result, {
-        [key]: options[key]
-      });
+      Object.assign(result, { [key]: options[key] });
     }
   });
   return result;
 }
 
+// pkg/dist-src/util/remove-undefined-properties.js
 function removeUndefinedProperties(obj) {
   for (const key in obj) {
-    if (obj[key] === undefined) {
+    if (obj[key] === void 0) {
       delete obj[key];
     }
   }
   return obj;
 }
 
+// pkg/dist-src/merge.js
 function merge(defaults, route, options) {
   if (typeof route === "string") {
     let [method, url] = route.split(" ");
-    options = Object.assign(url ? {
-      method,
-      url
-    } : {
-      url: method
-    }, options);
+    options = Object.assign(url ? { method, url } : { url: method }, options);
   } else {
     options = Object.assign({}, route);
   }
-  // lowercase header names before merging with defaults to avoid duplicates
   options.headers = lowercaseKeys(options.headers);
-  // remove properties with undefined values before merging
   removeUndefinedProperties(options);
   removeUndefinedProperties(options.headers);
   const mergedOptions = mergeDeep(defaults || {}, options);
-  // mediaType.previews arrays are merged, instead of overwritten
   if (defaults && defaults.mediaType.previews.length) {
-    mergedOptions.mediaType.previews = defaults.mediaType.previews.filter(preview => !mergedOptions.mediaType.previews.includes(preview)).concat(mergedOptions.mediaType.previews);
+    mergedOptions.mediaType.previews = defaults.mediaType.previews.filter((preview) => !mergedOptions.mediaType.previews.includes(preview)).concat(mergedOptions.mediaType.previews);
   }
-  mergedOptions.mediaType.previews = mergedOptions.mediaType.previews.map(preview => preview.replace(/-preview/, ""));
+  mergedOptions.mediaType.previews = mergedOptions.mediaType.previews.map(
+    (preview) => preview.replace(/-preview/, "")
+  );
   return mergedOptions;
 }
 
+// pkg/dist-src/util/add-query-parameters.js
 function addQueryParameters(url, parameters) {
   const separator = /\?/.test(url) ? "&" : "?";
   const names = Object.keys(parameters);
   if (names.length === 0) {
     return url;
   }
-  return url + separator + names.map(name => {
+  return url + separator + names.map((name) => {
     if (name === "q") {
       return "q=" + parameters.q.split("+").map(encodeURIComponent).join("+");
     }
@@ -3982,7 +4050,8 @@ function addQueryParameters(url, parameters) {
   }).join("&");
 }
 
-const urlVariableRegex = /\{[^}]+\}/g;
+// pkg/dist-src/util/extract-url-variable-names.js
+var urlVariableRegex = /\{[^}]+\}/g;
 function removeNonChars(variableName) {
   return variableName.replace(/^\W+|\W+$/g, "").split(/,/);
 }
@@ -3994,41 +4063,17 @@ function extractUrlVariableNames(url) {
   return matches.map(removeNonChars).reduce((a, b) => a.concat(b), []);
 }
 
+// pkg/dist-src/util/omit.js
 function omit(object, keysToOmit) {
-  return Object.keys(object).filter(option => !keysToOmit.includes(option)).reduce((obj, key) => {
+  return Object.keys(object).filter((option) => !keysToOmit.includes(option)).reduce((obj, key) => {
     obj[key] = object[key];
     return obj;
   }, {});
 }
 
-// Based on https://github.com/bramstein/url-template, licensed under BSD
-// TODO: create separate package.
-//
-// Copyright (c) 2012-2014, Bram Stein
-// All rights reserved.
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-//  1. Redistributions of source code must retain the above copyright
-//     notice, this list of conditions and the following disclaimer.
-//  2. Redistributions in binary form must reproduce the above copyright
-//     notice, this list of conditions and the following disclaimer in the
-//     documentation and/or other materials provided with the distribution.
-//  3. The name of the author may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-// THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-// EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-// OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-// EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-/* istanbul ignore file */
+// pkg/dist-src/util/url-template.js
 function encodeReserved(str) {
-  return str.split(/(%[0-9A-Fa-f]{2})/g).map(function (part) {
+  return str.split(/(%[0-9A-Fa-f]{2})/g).map(function(part) {
     if (!/%[0-9A-Fa-f]/.test(part)) {
       part = encodeURI(part).replace(/%5B/g, "[").replace(/%5D/g, "]");
     }
@@ -4036,7 +4081,7 @@ function encodeReserved(str) {
   }).join("");
 }
 function encodeUnreserved(str) {
-  return encodeURIComponent(str).replace(/[!'()*]/g, function (c) {
+  return encodeURIComponent(str).replace(/[!'()*]/g, function(c) {
     return "%" + c.charCodeAt(0).toString(16).toUpperCase();
   });
 }
@@ -4049,29 +4094,32 @@ function encodeValue(operator, value, key) {
   }
 }
 function isDefined(value) {
-  return value !== undefined && value !== null;
+  return value !== void 0 && value !== null;
 }
 function isKeyOperator(operator) {
   return operator === ";" || operator === "&" || operator === "?";
 }
 function getValues(context, operator, key, modifier) {
-  var value = context[key],
-    result = [];
+  var value = context[key], result = [];
   if (isDefined(value) && value !== "") {
     if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
       value = value.toString();
       if (modifier && modifier !== "*") {
         value = value.substring(0, parseInt(modifier, 10));
       }
-      result.push(encodeValue(operator, value, isKeyOperator(operator) ? key : ""));
+      result.push(
+        encodeValue(operator, value, isKeyOperator(operator) ? key : "")
+      );
     } else {
       if (modifier === "*") {
         if (Array.isArray(value)) {
-          value.filter(isDefined).forEach(function (value) {
-            result.push(encodeValue(operator, value, isKeyOperator(operator) ? key : ""));
+          value.filter(isDefined).forEach(function(value2) {
+            result.push(
+              encodeValue(operator, value2, isKeyOperator(operator) ? key : "")
+            );
           });
         } else {
-          Object.keys(value).forEach(function (k) {
+          Object.keys(value).forEach(function(k) {
             if (isDefined(value[k])) {
               result.push(encodeValue(operator, value[k], k));
             }
@@ -4080,11 +4128,11 @@ function getValues(context, operator, key, modifier) {
       } else {
         const tmp = [];
         if (Array.isArray(value)) {
-          value.filter(isDefined).forEach(function (value) {
-            tmp.push(encodeValue(operator, value));
+          value.filter(isDefined).forEach(function(value2) {
+            tmp.push(encodeValue(operator, value2));
           });
         } else {
-          Object.keys(value).forEach(function (k) {
+          Object.keys(value).forEach(function(k) {
             if (isDefined(value[k])) {
               tmp.push(encodeUnreserved(k));
               tmp.push(encodeValue(operator, value[k].toString()));
@@ -4118,67 +4166,77 @@ function parseUrl(template) {
 }
 function expand(template, context) {
   var operators = ["+", "#", ".", "/", ";", "?", "&"];
-  return template.replace(/\{([^\{\}]+)\}|([^\{\}]+)/g, function (_, expression, literal) {
-    if (expression) {
-      let operator = "";
-      const values = [];
-      if (operators.indexOf(expression.charAt(0)) !== -1) {
-        operator = expression.charAt(0);
-        expression = expression.substr(1);
-      }
-      expression.split(/,/g).forEach(function (variable) {
-        var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
-        values.push(getValues(context, operator, tmp[1], tmp[2] || tmp[3]));
-      });
-      if (operator && operator !== "+") {
-        var separator = ",";
-        if (operator === "?") {
-          separator = "&";
-        } else if (operator !== "#") {
-          separator = operator;
+  return template.replace(
+    /\{([^\{\}]+)\}|([^\{\}]+)/g,
+    function(_, expression, literal) {
+      if (expression) {
+        let operator = "";
+        const values = [];
+        if (operators.indexOf(expression.charAt(0)) !== -1) {
+          operator = expression.charAt(0);
+          expression = expression.substr(1);
         }
-        return (values.length !== 0 ? operator : "") + values.join(separator);
+        expression.split(/,/g).forEach(function(variable) {
+          var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
+          values.push(getValues(context, operator, tmp[1], tmp[2] || tmp[3]));
+        });
+        if (operator && operator !== "+") {
+          var separator = ",";
+          if (operator === "?") {
+            separator = "&";
+          } else if (operator !== "#") {
+            separator = operator;
+          }
+          return (values.length !== 0 ? operator : "") + values.join(separator);
+        } else {
+          return values.join(",");
+        }
       } else {
-        return values.join(",");
+        return encodeReserved(literal);
       }
-    } else {
-      return encodeReserved(literal);
     }
-  });
+  );
 }
 
+// pkg/dist-src/parse.js
 function parse(options) {
-  // https://fetch.spec.whatwg.org/#methods
   let method = options.method.toUpperCase();
-  // replace :varname with {varname} to make it RFC 6570 compatible
   let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{$1}");
   let headers = Object.assign({}, options.headers);
   let body;
-  let parameters = omit(options, ["method", "baseUrl", "url", "headers", "request", "mediaType"]);
-  // extract variable names from URL to calculate remaining variables later
+  let parameters = omit(options, [
+    "method",
+    "baseUrl",
+    "url",
+    "headers",
+    "request",
+    "mediaType"
+  ]);
   const urlVariableNames = extractUrlVariableNames(url);
   url = parseUrl(url).expand(parameters);
   if (!/^http/.test(url)) {
     url = options.baseUrl + url;
   }
-  const omittedParameters = Object.keys(options).filter(option => urlVariableNames.includes(option)).concat("baseUrl");
+  const omittedParameters = Object.keys(options).filter((option) => urlVariableNames.includes(option)).concat("baseUrl");
   const remainingParameters = omit(parameters, omittedParameters);
   const isBinaryRequest = /application\/octet-stream/i.test(headers.accept);
   if (!isBinaryRequest) {
     if (options.mediaType.format) {
-      // e.g. application/vnd.github.v3+json => application/vnd.github.v3.raw
-      headers.accept = headers.accept.split(/,/).map(preview => preview.replace(/application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/, `application/vnd$1$2.${options.mediaType.format}`)).join(",");
+      headers.accept = headers.accept.split(/,/).map(
+        (preview) => preview.replace(
+          /application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/,
+          `application/vnd$1$2.${options.mediaType.format}`
+        )
+      ).join(",");
     }
     if (options.mediaType.previews.length) {
       const previewsFromAcceptHeader = headers.accept.match(/[\w-]+(?=-preview)/g) || [];
-      headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map(preview => {
+      headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map((preview) => {
         const format = options.mediaType.format ? `.${options.mediaType.format}` : "+json";
         return `application/vnd.github.${preview}-preview${format}`;
       }).join(",");
     }
   }
-  // for GET/HEAD requests, set URL query parameters from remaining parameters
-  // for PATCH/POST/PUT/DELETE requests, set request body from remaining parameters
   if (["GET", "HEAD"].includes(method)) {
     url = addQueryParameters(url, remainingParameters);
   } else {
@@ -4190,48 +4248,45 @@ function parse(options) {
       }
     }
   }
-  // default content-type for JSON if body is set
   if (!headers["content-type"] && typeof body !== "undefined") {
     headers["content-type"] = "application/json; charset=utf-8";
   }
-  // GitHub expects 'content-length: 0' header for PUT/PATCH requests without body.
-  // fetch does not allow to set `content-length` header, but we can set body to an empty string
   if (["PATCH", "PUT"].includes(method) && typeof body === "undefined") {
     body = "";
   }
-  // Only return body/request keys if present
-  return Object.assign({
-    method,
-    url,
-    headers
-  }, typeof body !== "undefined" ? {
-    body
-  } : null, options.request ? {
-    request: options.request
-  } : null);
+  return Object.assign(
+    { method, url, headers },
+    typeof body !== "undefined" ? { body } : null,
+    options.request ? { request: options.request } : null
+  );
 }
 
+// pkg/dist-src/endpoint-with-defaults.js
 function endpointWithDefaults(defaults, route, options) {
   return parse(merge(defaults, route, options));
 }
 
+// pkg/dist-src/with-defaults.js
 function withDefaults(oldDefaults, newDefaults) {
-  const DEFAULTS = merge(oldDefaults, newDefaults);
-  const endpoint = endpointWithDefaults.bind(null, DEFAULTS);
-  return Object.assign(endpoint, {
-    DEFAULTS,
-    defaults: withDefaults.bind(null, DEFAULTS),
-    merge: merge.bind(null, DEFAULTS),
+  const DEFAULTS2 = merge(oldDefaults, newDefaults);
+  const endpoint2 = endpointWithDefaults.bind(null, DEFAULTS2);
+  return Object.assign(endpoint2, {
+    DEFAULTS: DEFAULTS2,
+    defaults: withDefaults.bind(null, DEFAULTS2),
+    merge: merge.bind(null, DEFAULTS2),
     parse
   });
 }
 
-const VERSION = "7.0.5";
+// pkg/dist-src/defaults.js
+var import_universal_user_agent = __nccwpck_require__(5030);
 
-const userAgent = `octokit-endpoint.js/${VERSION} ${universalUserAgent.getUserAgent()}`;
-// DEFAULTS has all properties set that EndpointOptions has, except url.
-// So we use RequestParameters and add method as additional required property.
-const DEFAULTS = {
+// pkg/dist-src/version.js
+var VERSION = "7.0.6";
+
+// pkg/dist-src/defaults.js
+var userAgent = `octokit-endpoint.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
+var DEFAULTS = {
   method: "GET",
   baseUrl: "https://api.github.com",
   headers: {
@@ -4244,10 +4299,10 @@ const DEFAULTS = {
   }
 };
 
-const endpoint = withDefaults(null, DEFAULTS);
-
-exports.endpoint = endpoint;
-//# sourceMappingURL=index.js.map
+// pkg/dist-src/index.js
+var endpoint = withDefaults(null, DEFAULTS);
+// Annotate the CommonJS export names for ESM import in node:
+0 && (0);
 
 
 /***/ }),
@@ -5106,22 +5161,64 @@ exports.oauthAuthorizationUrl = oauthAuthorizationUrl;
 /***/ }),
 
 /***/ 8445:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
+// pkg/dist-src/index.js
+var dist_src_exports = {};
+__export(dist_src_exports, {
+  VERSION: () => VERSION,
+  checkToken: () => checkToken,
+  createDeviceCode: () => createDeviceCode,
+  deleteAuthorization: () => deleteAuthorization,
+  deleteToken: () => deleteToken,
+  exchangeDeviceCode: () => exchangeDeviceCode,
+  exchangeWebFlowCode: () => exchangeWebFlowCode,
+  getWebFlowAuthorizationUrl: () => getWebFlowAuthorizationUrl,
+  refreshToken: () => refreshToken,
+  resetToken: () => resetToken,
+  scopeToken: () => scopeToken
+});
+module.exports = __toCommonJS(dist_src_exports);
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+// pkg/dist-src/version.js
+var VERSION = "2.0.6";
 
-var oauthAuthorizationUrl = __nccwpck_require__(2272);
-var request = __nccwpck_require__(6234);
-var requestError = __nccwpck_require__(537);
-var btoa = _interopDefault(__nccwpck_require__(2358));
+// pkg/dist-src/get-web-flow-authorization-url.js
+var import_oauth_authorization_url = __nccwpck_require__(2272);
+var import_request = __nccwpck_require__(6234);
 
-const VERSION = "2.0.5";
-
+// pkg/dist-src/utils.js
+var import_request_error = __nccwpck_require__(537);
 function requestToOAuthBaseUrl(request) {
   const endpointDefaults = request.endpoint.DEFAULTS;
   return /^https:\/\/(api\.)?github\.com$/.test(endpointDefaults.baseUrl) ? "https://github.com" : endpointDefaults.baseUrl.replace("/api/v3", "");
@@ -5136,38 +5233,50 @@ async function oauthRequest(request, route, parameters) {
   };
   const response = await request(route, withOAuthParameters);
   if ("error" in response.data) {
-    const error = new requestError.RequestError(`${response.data.error_description} (${response.data.error}, ${response.data.error_uri})`, 400, {
-      request: request.endpoint.merge(route, withOAuthParameters),
-      headers: response.headers
-    });
-    // @ts-ignore add custom response property until https://github.com/octokit/request-error.js/issues/169 is resolved
+    const error = new import_request_error.RequestError(
+      `${response.data.error_description} (${response.data.error}, ${response.data.error_uri})`,
+      400,
+      {
+        request: request.endpoint.merge(
+          route,
+          withOAuthParameters
+        ),
+        headers: response.headers
+      }
+    );
     error.response = response;
     throw error;
   }
   return response;
 }
 
+// pkg/dist-src/get-web-flow-authorization-url.js
 function getWebFlowAuthorizationUrl({
-  request: request$1 = request.request,
+  request = import_request.request,
   ...options
 }) {
-  const baseUrl = requestToOAuthBaseUrl(request$1);
-  // @ts-expect-error TypeScript wants `clientType` to be set explicitly ¯\_(ツ)_/¯
-  return oauthAuthorizationUrl.oauthAuthorizationUrl({
+  const baseUrl = requestToOAuthBaseUrl(request);
+  return (0, import_oauth_authorization_url.oauthAuthorizationUrl)({
     ...options,
     baseUrl
   });
 }
 
+// pkg/dist-src/exchange-web-flow-code.js
+var import_request2 = __nccwpck_require__(6234);
 async function exchangeWebFlowCode(options) {
-  const request$1 = options.request || /* istanbul ignore next: we always pass a custom request in tests */
-  request.request;
-  const response = await oauthRequest(request$1, "POST /login/oauth/access_token", {
-    client_id: options.clientId,
-    client_secret: options.clientSecret,
-    code: options.code,
-    redirect_uri: options.redirectUrl
-  });
+  const request = options.request || /* istanbul ignore next: we always pass a custom request in tests */
+  import_request2.request;
+  const response = await oauthRequest(
+    request,
+    "POST /login/oauth/access_token",
+    {
+      client_id: options.clientId,
+      client_secret: options.clientSecret,
+      code: options.code,
+      redirect_uri: options.redirectUrl
+    }
+  );
   const authentication = {
     clientType: options.clientType,
     clientId: options.clientId,
@@ -5178,39 +5287,50 @@ async function exchangeWebFlowCode(options) {
   if (options.clientType === "github-app") {
     if ("refresh_token" in response.data) {
       const apiTimeInMs = new Date(response.headers.date).getTime();
-      authentication.refreshToken = response.data.refresh_token, authentication.expiresAt = toTimestamp(apiTimeInMs, response.data.expires_in), authentication.refreshTokenExpiresAt = toTimestamp(apiTimeInMs, response.data.refresh_token_expires_in);
+      authentication.refreshToken = response.data.refresh_token, authentication.expiresAt = toTimestamp(
+        apiTimeInMs,
+        response.data.expires_in
+      ), authentication.refreshTokenExpiresAt = toTimestamp(
+        apiTimeInMs,
+        response.data.refresh_token_expires_in
+      );
     }
     delete authentication.scopes;
   }
-  return {
-    ...response,
-    authentication
-  };
+  return { ...response, authentication };
 }
 function toTimestamp(apiTimeInMs, expirationInSeconds) {
-  return new Date(apiTimeInMs + expirationInSeconds * 1000).toISOString();
+  return new Date(apiTimeInMs + expirationInSeconds * 1e3).toISOString();
 }
 
+// pkg/dist-src/create-device-code.js
+var import_request3 = __nccwpck_require__(6234);
 async function createDeviceCode(options) {
-  const request$1 = options.request || /* istanbul ignore next: we always pass a custom request in tests */
-  request.request;
+  const request = options.request || /* istanbul ignore next: we always pass a custom request in tests */
+  import_request3.request;
   const parameters = {
     client_id: options.clientId
   };
   if ("scopes" in options && Array.isArray(options.scopes)) {
     parameters.scope = options.scopes.join(" ");
   }
-  return oauthRequest(request$1, "POST /login/device/code", parameters);
+  return oauthRequest(request, "POST /login/device/code", parameters);
 }
 
+// pkg/dist-src/exchange-device-code.js
+var import_request4 = __nccwpck_require__(6234);
 async function exchangeDeviceCode(options) {
-  const request$1 = options.request || /* istanbul ignore next: we always pass a custom request in tests */
-  request.request;
-  const response = await oauthRequest(request$1, "POST /login/oauth/access_token", {
-    client_id: options.clientId,
-    device_code: options.code,
-    grant_type: "urn:ietf:params:oauth:grant-type:device_code"
-  });
+  const request = options.request || /* istanbul ignore next: we always pass a custom request in tests */
+  import_request4.request;
+  const response = await oauthRequest(
+    request,
+    "POST /login/oauth/access_token",
+    {
+      client_id: options.clientId,
+      device_code: options.code,
+      grant_type: "urn:ietf:params:oauth:grant-type:device_code"
+    }
+  );
   const authentication = {
     clientType: options.clientType,
     clientId: options.clientId,
@@ -5223,25 +5343,33 @@ async function exchangeDeviceCode(options) {
   if (options.clientType === "github-app") {
     if ("refresh_token" in response.data) {
       const apiTimeInMs = new Date(response.headers.date).getTime();
-      authentication.refreshToken = response.data.refresh_token, authentication.expiresAt = toTimestamp$1(apiTimeInMs, response.data.expires_in), authentication.refreshTokenExpiresAt = toTimestamp$1(apiTimeInMs, response.data.refresh_token_expires_in);
+      authentication.refreshToken = response.data.refresh_token, authentication.expiresAt = toTimestamp2(
+        apiTimeInMs,
+        response.data.expires_in
+      ), authentication.refreshTokenExpiresAt = toTimestamp2(
+        apiTimeInMs,
+        response.data.refresh_token_expires_in
+      );
     }
     delete authentication.scopes;
   }
-  return {
-    ...response,
-    authentication
-  };
+  return { ...response, authentication };
 }
-function toTimestamp$1(apiTimeInMs, expirationInSeconds) {
-  return new Date(apiTimeInMs + expirationInSeconds * 1000).toISOString();
+function toTimestamp2(apiTimeInMs, expirationInSeconds) {
+  return new Date(apiTimeInMs + expirationInSeconds * 1e3).toISOString();
 }
 
+// pkg/dist-src/check-token.js
+var import_request5 = __nccwpck_require__(6234);
+var import_btoa_lite = __toESM(__nccwpck_require__(2358));
 async function checkToken(options) {
-  const request$1 = options.request || /* istanbul ignore next: we always pass a custom request in tests */
-  request.request;
-  const response = await request$1("POST /applications/{client_id}/token", {
+  const request = options.request || /* istanbul ignore next: we always pass a custom request in tests */
+  import_request5.request;
+  const response = await request("POST /applications/{client_id}/token", {
     headers: {
-      authorization: `basic ${btoa(`${options.clientId}:${options.clientSecret}`)}`
+      authorization: `basic ${(0, import_btoa_lite.default)(
+        `${options.clientId}:${options.clientSecret}`
+      )}`
     },
     client_id: options.clientId,
     access_token: options.token
@@ -5253,25 +5381,29 @@ async function checkToken(options) {
     token: options.token,
     scopes: response.data.scopes
   };
-  if (response.data.expires_at) authentication.expiresAt = response.data.expires_at;
+  if (response.data.expires_at)
+    authentication.expiresAt = response.data.expires_at;
   if (options.clientType === "github-app") {
     delete authentication.scopes;
   }
-  return {
-    ...response,
-    authentication
-  };
+  return { ...response, authentication };
 }
 
+// pkg/dist-src/refresh-token.js
+var import_request6 = __nccwpck_require__(6234);
 async function refreshToken(options) {
-  const request$1 = options.request || /* istanbul ignore next: we always pass a custom request in tests */
-  request.request;
-  const response = await oauthRequest(request$1, "POST /login/oauth/access_token", {
-    client_id: options.clientId,
-    client_secret: options.clientSecret,
-    grant_type: "refresh_token",
-    refresh_token: options.refreshToken
-  });
+  const request = options.request || /* istanbul ignore next: we always pass a custom request in tests */
+  import_request6.request;
+  const response = await oauthRequest(
+    request,
+    "POST /login/oauth/access_token",
+    {
+      client_id: options.clientId,
+      client_secret: options.clientSecret,
+      grant_type: "refresh_token",
+      refresh_token: options.refreshToken
+    }
+  );
   const apiTimeInMs = new Date(response.headers.date).getTime();
   const authentication = {
     clientType: "github-app",
@@ -5279,18 +5411,21 @@ async function refreshToken(options) {
     clientSecret: options.clientSecret,
     token: response.data.access_token,
     refreshToken: response.data.refresh_token,
-    expiresAt: toTimestamp$2(apiTimeInMs, response.data.expires_in),
-    refreshTokenExpiresAt: toTimestamp$2(apiTimeInMs, response.data.refresh_token_expires_in)
+    expiresAt: toTimestamp3(apiTimeInMs, response.data.expires_in),
+    refreshTokenExpiresAt: toTimestamp3(
+      apiTimeInMs,
+      response.data.refresh_token_expires_in
+    )
   };
-  return {
-    ...response,
-    authentication
-  };
+  return { ...response, authentication };
 }
-function toTimestamp$2(apiTimeInMs, expirationInSeconds) {
-  return new Date(apiTimeInMs + expirationInSeconds * 1000).toISOString();
+function toTimestamp3(apiTimeInMs, expirationInSeconds) {
+  return new Date(apiTimeInMs + expirationInSeconds * 1e3).toISOString();
 }
 
+// pkg/dist-src/scope-token.js
+var import_request7 = __nccwpck_require__(6234);
+var import_btoa_lite2 = __toESM(__nccwpck_require__(2358));
 async function scopeToken(options) {
   const {
     request: optionsRequest,
@@ -5300,41 +5435,48 @@ async function scopeToken(options) {
     token,
     ...requestOptions
   } = options;
-  const request$1 = optionsRequest || /* istanbul ignore next: we always pass a custom request in tests */
-  request.request;
-  const response = await request$1("POST /applications/{client_id}/token/scoped", {
-    headers: {
-      authorization: `basic ${btoa(`${clientId}:${clientSecret}`)}`
+  const request = optionsRequest || /* istanbul ignore next: we always pass a custom request in tests */
+  import_request7.request;
+  const response = await request(
+    "POST /applications/{client_id}/token/scoped",
+    {
+      headers: {
+        authorization: `basic ${(0, import_btoa_lite2.default)(`${clientId}:${clientSecret}`)}`
+      },
+      client_id: clientId,
+      access_token: token,
+      ...requestOptions
+    }
+  );
+  const authentication = Object.assign(
+    {
+      clientType,
+      clientId,
+      clientSecret,
+      token: response.data.token
     },
-    client_id: clientId,
-    access_token: token,
-    ...requestOptions
-  });
-  const authentication = Object.assign({
-    clientType,
-    clientId,
-    clientSecret,
-    token: response.data.token
-  }, response.data.expires_at ? {
-    expiresAt: response.data.expires_at
-  } : {});
-  return {
-    ...response,
-    authentication
-  };
+    response.data.expires_at ? { expiresAt: response.data.expires_at } : {}
+  );
+  return { ...response, authentication };
 }
 
+// pkg/dist-src/reset-token.js
+var import_request8 = __nccwpck_require__(6234);
+var import_btoa_lite3 = __toESM(__nccwpck_require__(2358));
 async function resetToken(options) {
-  const request$1 = options.request || /* istanbul ignore next: we always pass a custom request in tests */
-  request.request;
-  const auth = btoa(`${options.clientId}:${options.clientSecret}`);
-  const response = await request$1("PATCH /applications/{client_id}/token", {
-    headers: {
-      authorization: `basic ${auth}`
-    },
-    client_id: options.clientId,
-    access_token: options.token
-  });
+  const request = options.request || /* istanbul ignore next: we always pass a custom request in tests */
+  import_request8.request;
+  const auth = (0, import_btoa_lite3.default)(`${options.clientId}:${options.clientSecret}`);
+  const response = await request(
+    "PATCH /applications/{client_id}/token",
+    {
+      headers: {
+        authorization: `basic ${auth}`
+      },
+      client_id: options.clientId,
+      access_token: options.token
+    }
+  );
   const authentication = {
     clientType: options.clientType,
     clientId: options.clientId,
@@ -5342,54 +5484,53 @@ async function resetToken(options) {
     token: response.data.token,
     scopes: response.data.scopes
   };
-  if (response.data.expires_at) authentication.expiresAt = response.data.expires_at;
+  if (response.data.expires_at)
+    authentication.expiresAt = response.data.expires_at;
   if (options.clientType === "github-app") {
     delete authentication.scopes;
   }
-  return {
-    ...response,
-    authentication
-  };
+  return { ...response, authentication };
 }
 
+// pkg/dist-src/delete-token.js
+var import_request9 = __nccwpck_require__(6234);
+var import_btoa_lite4 = __toESM(__nccwpck_require__(2358));
 async function deleteToken(options) {
-  const request$1 = options.request || /* istanbul ignore next: we always pass a custom request in tests */
-  request.request;
-  const auth = btoa(`${options.clientId}:${options.clientSecret}`);
-  return request$1("DELETE /applications/{client_id}/token", {
-    headers: {
-      authorization: `basic ${auth}`
-    },
-    client_id: options.clientId,
-    access_token: options.token
-  });
+  const request = options.request || /* istanbul ignore next: we always pass a custom request in tests */
+  import_request9.request;
+  const auth = (0, import_btoa_lite4.default)(`${options.clientId}:${options.clientSecret}`);
+  return request(
+    "DELETE /applications/{client_id}/token",
+    {
+      headers: {
+        authorization: `basic ${auth}`
+      },
+      client_id: options.clientId,
+      access_token: options.token
+    }
+  );
 }
 
+// pkg/dist-src/delete-authorization.js
+var import_request10 = __nccwpck_require__(6234);
+var import_btoa_lite5 = __toESM(__nccwpck_require__(2358));
 async function deleteAuthorization(options) {
-  const request$1 = options.request || /* istanbul ignore next: we always pass a custom request in tests */
-  request.request;
-  const auth = btoa(`${options.clientId}:${options.clientSecret}`);
-  return request$1("DELETE /applications/{client_id}/grant", {
-    headers: {
-      authorization: `basic ${auth}`
-    },
-    client_id: options.clientId,
-    access_token: options.token
-  });
+  const request = options.request || /* istanbul ignore next: we always pass a custom request in tests */
+  import_request10.request;
+  const auth = (0, import_btoa_lite5.default)(`${options.clientId}:${options.clientSecret}`);
+  return request(
+    "DELETE /applications/{client_id}/grant",
+    {
+      headers: {
+        authorization: `basic ${auth}`
+      },
+      client_id: options.clientId,
+      access_token: options.token
+    }
+  );
 }
-
-exports.VERSION = VERSION;
-exports.checkToken = checkToken;
-exports.createDeviceCode = createDeviceCode;
-exports.deleteAuthorization = deleteAuthorization;
-exports.deleteToken = deleteToken;
-exports.exchangeDeviceCode = exchangeDeviceCode;
-exports.exchangeWebFlowCode = exchangeWebFlowCode;
-exports.getWebFlowAuthorizationUrl = getWebFlowAuthorizationUrl;
-exports.refreshToken = refreshToken;
-exports.resetToken = resetToken;
-exports.scopeToken = scopeToken;
-//# sourceMappingURL=index.js.map
+// Annotate the CommonJS export names for ESM import in node:
+0 && (0);
 
 
 /***/ }),
@@ -6804,7 +6945,7 @@ var import_endpoint = __nccwpck_require__(9440);
 var import_universal_user_agent = __nccwpck_require__(5030);
 
 // pkg/dist-src/version.js
-var VERSION = "6.2.5";
+var VERSION = "6.2.8";
 
 // pkg/dist-src/fetch-wrapper.js
 var import_is_plain_object = __nccwpck_require__(3287);
@@ -13468,6 +13609,7 @@ class Comparator {
       }
     }
 
+    comp = comp.trim().split(/\s+/).join(' ')
     debug('comparator', comp, options)
     this.options = options
     this.loose = !!options.loose
@@ -13585,7 +13727,7 @@ class Comparator {
 module.exports = Comparator
 
 const parseOptions = __nccwpck_require__(5185)
-const { re, t } = __nccwpck_require__(6091)
+const { safeRe: re, t } = __nccwpck_require__(6091)
 const cmp = __nccwpck_require__(3621)
 const debug = __nccwpck_require__(2935)
 const SemVer = __nccwpck_require__(3402)
@@ -13625,19 +13767,26 @@ class Range {
     this.loose = !!options.loose
     this.includePrerelease = !!options.includePrerelease
 
-    // First, split based on boolean or ||
+    // First reduce all whitespace as much as possible so we do not have to rely
+    // on potentially slow regexes like \s*. This is then stored and used for
+    // future error messages as well.
     this.raw = range
-    this.set = range
+      .trim()
+      .split(/\s+/)
+      .join(' ')
+
+    // First, split on ||
+    this.set = this.raw
       .split('||')
       // map the range to a 2d array of comparators
-      .map(r => this.parseRange(r.trim()))
+      .map(r => this.parseRange(r))
       // throw out any comparator lists that are empty
       // this generally means that it was not a valid range, which is allowed
       // in loose mode, but will still throw if the WHOLE range is invalid.
       .filter(c => c.length)
 
     if (!this.set.length) {
-      throw new TypeError(`Invalid SemVer Range: ${range}`)
+      throw new TypeError(`Invalid SemVer Range: ${this.raw}`)
     }
 
     // if we have any that are not the null set, throw out null sets.
@@ -13663,9 +13812,7 @@ class Range {
 
   format () {
     this.range = this.set
-      .map((comps) => {
-        return comps.join(' ').trim()
-      })
+      .map((comps) => comps.join(' ').trim())
       .join('||')
       .trim()
     return this.range
@@ -13676,8 +13823,6 @@ class Range {
   }
 
   parseRange (range) {
-    range = range.trim()
-
     // memoize range parsing for performance.
     // this is a very hot path, and fully deterministic.
     const memoOpts =
@@ -13703,9 +13848,6 @@ class Range {
 
     // `^ 1.2.3` => `^1.2.3`
     range = range.replace(re[t.CARETTRIM], caretTrimReplace)
-
-    // normalize spaces
-    range = range.split(/\s+/).join(' ')
 
     // At this point, the range is completely trimmed and
     // ready to be split into comparators.
@@ -13802,7 +13944,7 @@ const Comparator = __nccwpck_require__(4644)
 const debug = __nccwpck_require__(2935)
 const SemVer = __nccwpck_require__(3402)
 const {
-  re,
+  safeRe: re,
   t,
   comparatorTrimReplace,
   tildeTrimReplace,
@@ -13856,10 +13998,13 @@ const isX = id => !id || id.toLowerCase() === 'x' || id === '*'
 // ~1.2.3, ~>1.2.3 --> >=1.2.3 <1.3.0-0
 // ~1.2.0, ~>1.2.0 --> >=1.2.0 <1.3.0-0
 // ~0.0.1 --> >=0.0.1 <0.1.0-0
-const replaceTildes = (comp, options) =>
-  comp.trim().split(/\s+/).map((c) => {
-    return replaceTilde(c, options)
-  }).join(' ')
+const replaceTildes = (comp, options) => {
+  return comp
+    .trim()
+    .split(/\s+/)
+    .map((c) => replaceTilde(c, options))
+    .join(' ')
+}
 
 const replaceTilde = (comp, options) => {
   const r = options.loose ? re[t.TILDELOOSE] : re[t.TILDE]
@@ -13897,10 +14042,13 @@ const replaceTilde = (comp, options) => {
 // ^1.2.0 --> >=1.2.0 <2.0.0-0
 // ^0.0.1 --> >=0.0.1 <0.0.2-0
 // ^0.1.0 --> >=0.1.0 <0.2.0-0
-const replaceCarets = (comp, options) =>
-  comp.trim().split(/\s+/).map((c) => {
-    return replaceCaret(c, options)
-  }).join(' ')
+const replaceCarets = (comp, options) => {
+  return comp
+    .trim()
+    .split(/\s+/)
+    .map((c) => replaceCaret(c, options))
+    .join(' ')
+}
 
 const replaceCaret = (comp, options) => {
   debug('caret', comp, options)
@@ -13957,9 +14105,10 @@ const replaceCaret = (comp, options) => {
 
 const replaceXRanges = (comp, options) => {
   debug('replaceXRanges', comp, options)
-  return comp.split(/\s+/).map((c) => {
-    return replaceXRange(c, options)
-  }).join(' ')
+  return comp
+    .split(/\s+/)
+    .map((c) => replaceXRange(c, options))
+    .join(' ')
 }
 
 const replaceXRange = (comp, options) => {
@@ -14042,12 +14191,15 @@ const replaceXRange = (comp, options) => {
 const replaceStars = (comp, options) => {
   debug('replaceStars', comp, options)
   // Looseness is ignored here.  star is always as loose as it gets!
-  return comp.trim().replace(re[t.STAR], '')
+  return comp
+    .trim()
+    .replace(re[t.STAR], '')
 }
 
 const replaceGTE0 = (comp, options) => {
   debug('replaceGTE0', comp, options)
-  return comp.trim()
+  return comp
+    .trim()
     .replace(re[options.includePrerelease ? t.GTE0PRE : t.GTE0], '')
 }
 
@@ -14085,7 +14237,7 @@ const hyphenReplace = incPr => ($0,
     to = `<=${to}`
   }
 
-  return (`${from} ${to}`).trim()
+  return `${from} ${to}`.trim()
 }
 
 const testSet = (set, version, options) => {
@@ -14132,7 +14284,7 @@ const testSet = (set, version, options) => {
 
 const debug = __nccwpck_require__(2935)
 const { MAX_LENGTH, MAX_SAFE_INTEGER } = __nccwpck_require__(7344)
-const { re, t } = __nccwpck_require__(6091)
+const { safeRe: re, t } = __nccwpck_require__(6091)
 
 const parseOptions = __nccwpck_require__(5185)
 const { compareIdentifiers } = __nccwpck_require__(2179)
@@ -14423,8 +14575,10 @@ class SemVer {
       default:
         throw new Error(`invalid increment argument: ${release}`)
     }
-    this.format()
-    this.raw = this.version
+    this.raw = this.format()
+    if (this.build.length) {
+      this.raw += `+${this.build.join('.')}`
+    }
     return this
   }
 }
@@ -14511,7 +14665,7 @@ module.exports = cmp
 
 const SemVer = __nccwpck_require__(3402)
 const parse = __nccwpck_require__(3371)
-const { re, t } = __nccwpck_require__(6091)
+const { safeRe: re, t } = __nccwpck_require__(6091)
 
 const coerce = (version, options) => {
   if (version instanceof SemVer) {
@@ -14619,6 +14773,35 @@ const diff = (version1, version2) => {
   const highVersion = v1Higher ? v1 : v2
   const lowVersion = v1Higher ? v2 : v1
   const highHasPre = !!highVersion.prerelease.length
+  const lowHasPre = !!lowVersion.prerelease.length
+
+  if (lowHasPre && !highHasPre) {
+    // Going from prerelease -> no prerelease requires some special casing
+
+    // If the low version has only a major, then it will always be a major
+    // Some examples:
+    // 1.0.0-1 -> 1.0.0
+    // 1.0.0-1 -> 1.1.1
+    // 1.0.0-1 -> 2.0.0
+    if (!lowVersion.patch && !lowVersion.minor) {
+      return 'major'
+    }
+
+    // Otherwise it can be determined by checking the high version
+
+    if (highVersion.patch) {
+      // anything higher than a patch bump would result in the wrong version
+      return 'patch'
+    }
+
+    if (highVersion.minor) {
+      // anything higher than a minor bump would result in the wrong version
+      return 'minor'
+    }
+
+    // bumping major/minor/patch all have same result
+    return 'major'
+  }
 
   // add the `pre` prefix if we are going to a prerelease version
   const prefix = highHasPre ? 'pre' : ''
@@ -14635,26 +14818,8 @@ const diff = (version1, version2) => {
     return prefix + 'patch'
   }
 
-  // at this point we know stable versions match but overall versions are not equal,
-  // so either they are both prereleases, or the lower version is a prerelease
-
-  if (highHasPre) {
-    // high and low are preleases
-    return 'prerelease'
-  }
-
-  if (lowVersion.patch) {
-    // anything higher than a patch bump would result in the wrong version
-    return 'patch'
-  }
-
-  if (lowVersion.minor) {
-    // anything higher than a minor bump would result in the wrong version
-    return 'minor'
-  }
-
-  // bumping major/minor/patch all have same result
-  return 'major'
+  // high and low are preleases
+  return 'prerelease'
 }
 
 module.exports = diff
@@ -15084,16 +15249,27 @@ exports = module.exports = {}
 
 // The actual regexps go on exports.re
 const re = exports.re = []
+const safeRe = exports.safeRe = []
 const src = exports.src = []
 const t = exports.t = {}
 let R = 0
 
 const createToken = (name, value, isGlobal) => {
+  // Replace all greedy whitespace to prevent regex dos issues. These regex are
+  // used internally via the safeRe object since all inputs in this library get
+  // normalized first to trim and collapse all extra whitespace. The original
+  // regexes are exported for userland consumption and lower level usage. A
+  // future breaking change could export the safer regex only with a note that
+  // all input should have extra whitespace removed.
+  const safe = value
+    .split('\\s*').join('\\s{0,1}')
+    .split('\\s+').join('\\s')
   const index = R++
   debug(name, index, value)
   t[name] = index
   src[index] = value
   re[index] = new RegExp(value, isGlobal ? 'g' : undefined)
+  safeRe[index] = new RegExp(safe, isGlobal ? 'g' : undefined)
 }
 
 // The following Regular Expressions can be used for tokenizing,
@@ -42072,6 +42248,7 @@ class Comparator {
       }
     }
 
+    comp = comp.trim().split(/\s+/).join(' ')
     debug('comparator', comp, options)
     this.options = options
     this.loose = !!options.loose
@@ -42189,7 +42366,7 @@ class Comparator {
 module.exports = Comparator
 
 const parseOptions = __nccwpck_require__(6167)
-const { re, t } = __nccwpck_require__(5422)
+const { safeRe: re, t } = __nccwpck_require__(5422)
 const cmp = __nccwpck_require__(8812)
 const debug = __nccwpck_require__(1202)
 const SemVer = __nccwpck_require__(6103)
@@ -42229,19 +42406,26 @@ class Range {
     this.loose = !!options.loose
     this.includePrerelease = !!options.includePrerelease
 
-    // First, split based on boolean or ||
+    // First reduce all whitespace as much as possible so we do not have to rely
+    // on potentially slow regexes like \s*. This is then stored and used for
+    // future error messages as well.
     this.raw = range
-    this.set = range
+      .trim()
+      .split(/\s+/)
+      .join(' ')
+
+    // First, split on ||
+    this.set = this.raw
       .split('||')
       // map the range to a 2d array of comparators
-      .map(r => this.parseRange(r.trim()))
+      .map(r => this.parseRange(r))
       // throw out any comparator lists that are empty
       // this generally means that it was not a valid range, which is allowed
       // in loose mode, but will still throw if the WHOLE range is invalid.
       .filter(c => c.length)
 
     if (!this.set.length) {
-      throw new TypeError(`Invalid SemVer Range: ${range}`)
+      throw new TypeError(`Invalid SemVer Range: ${this.raw}`)
     }
 
     // if we have any that are not the null set, throw out null sets.
@@ -42267,9 +42451,7 @@ class Range {
 
   format () {
     this.range = this.set
-      .map((comps) => {
-        return comps.join(' ').trim()
-      })
+      .map((comps) => comps.join(' ').trim())
       .join('||')
       .trim()
     return this.range
@@ -42280,8 +42462,6 @@ class Range {
   }
 
   parseRange (range) {
-    range = range.trim()
-
     // memoize range parsing for performance.
     // this is a very hot path, and fully deterministic.
     const memoOpts =
@@ -42307,9 +42487,6 @@ class Range {
 
     // `^ 1.2.3` => `^1.2.3`
     range = range.replace(re[t.CARETTRIM], caretTrimReplace)
-
-    // normalize spaces
-    range = range.split(/\s+/).join(' ')
 
     // At this point, the range is completely trimmed and
     // ready to be split into comparators.
@@ -42406,7 +42583,7 @@ const Comparator = __nccwpck_require__(8265)
 const debug = __nccwpck_require__(1202)
 const SemVer = __nccwpck_require__(6103)
 const {
-  re,
+  safeRe: re,
   t,
   comparatorTrimReplace,
   tildeTrimReplace,
@@ -42460,10 +42637,13 @@ const isX = id => !id || id.toLowerCase() === 'x' || id === '*'
 // ~1.2.3, ~>1.2.3 --> >=1.2.3 <1.3.0-0
 // ~1.2.0, ~>1.2.0 --> >=1.2.0 <1.3.0-0
 // ~0.0.1 --> >=0.0.1 <0.1.0-0
-const replaceTildes = (comp, options) =>
-  comp.trim().split(/\s+/).map((c) => {
-    return replaceTilde(c, options)
-  }).join(' ')
+const replaceTildes = (comp, options) => {
+  return comp
+    .trim()
+    .split(/\s+/)
+    .map((c) => replaceTilde(c, options))
+    .join(' ')
+}
 
 const replaceTilde = (comp, options) => {
   const r = options.loose ? re[t.TILDELOOSE] : re[t.TILDE]
@@ -42501,10 +42681,13 @@ const replaceTilde = (comp, options) => {
 // ^1.2.0 --> >=1.2.0 <2.0.0-0
 // ^0.0.1 --> >=0.0.1 <0.0.2-0
 // ^0.1.0 --> >=0.1.0 <0.2.0-0
-const replaceCarets = (comp, options) =>
-  comp.trim().split(/\s+/).map((c) => {
-    return replaceCaret(c, options)
-  }).join(' ')
+const replaceCarets = (comp, options) => {
+  return comp
+    .trim()
+    .split(/\s+/)
+    .map((c) => replaceCaret(c, options))
+    .join(' ')
+}
 
 const replaceCaret = (comp, options) => {
   debug('caret', comp, options)
@@ -42561,9 +42744,10 @@ const replaceCaret = (comp, options) => {
 
 const replaceXRanges = (comp, options) => {
   debug('replaceXRanges', comp, options)
-  return comp.split(/\s+/).map((c) => {
-    return replaceXRange(c, options)
-  }).join(' ')
+  return comp
+    .split(/\s+/)
+    .map((c) => replaceXRange(c, options))
+    .join(' ')
 }
 
 const replaceXRange = (comp, options) => {
@@ -42646,12 +42830,15 @@ const replaceXRange = (comp, options) => {
 const replaceStars = (comp, options) => {
   debug('replaceStars', comp, options)
   // Looseness is ignored here.  star is always as loose as it gets!
-  return comp.trim().replace(re[t.STAR], '')
+  return comp
+    .trim()
+    .replace(re[t.STAR], '')
 }
 
 const replaceGTE0 = (comp, options) => {
   debug('replaceGTE0', comp, options)
-  return comp.trim()
+  return comp
+    .trim()
     .replace(re[options.includePrerelease ? t.GTE0PRE : t.GTE0], '')
 }
 
@@ -42689,7 +42876,7 @@ const hyphenReplace = incPr => ($0,
     to = `<=${to}`
   }
 
-  return (`${from} ${to}`).trim()
+  return `${from} ${to}`.trim()
 }
 
 const testSet = (set, version, options) => {
@@ -42736,7 +42923,7 @@ const testSet = (set, version, options) => {
 
 const debug = __nccwpck_require__(1202)
 const { MAX_LENGTH, MAX_SAFE_INTEGER } = __nccwpck_require__(390)
-const { re, t } = __nccwpck_require__(5422)
+const { safeRe: re, t } = __nccwpck_require__(5422)
 
 const parseOptions = __nccwpck_require__(6167)
 const { compareIdentifiers } = __nccwpck_require__(6611)
@@ -43027,8 +43214,10 @@ class SemVer {
       default:
         throw new Error(`invalid increment argument: ${release}`)
     }
-    this.format()
-    this.raw = this.version
+    this.raw = this.format()
+    if (this.build.length) {
+      this.raw += `+${this.build.join('.')}`
+    }
     return this
   }
 }
@@ -43115,7 +43304,7 @@ module.exports = cmp
 
 const SemVer = __nccwpck_require__(6103)
 const parse = __nccwpck_require__(9557)
-const { re, t } = __nccwpck_require__(5422)
+const { safeRe: re, t } = __nccwpck_require__(5422)
 
 const coerce = (version, options) => {
   if (version instanceof SemVer) {
@@ -43223,6 +43412,35 @@ const diff = (version1, version2) => {
   const highVersion = v1Higher ? v1 : v2
   const lowVersion = v1Higher ? v2 : v1
   const highHasPre = !!highVersion.prerelease.length
+  const lowHasPre = !!lowVersion.prerelease.length
+
+  if (lowHasPre && !highHasPre) {
+    // Going from prerelease -> no prerelease requires some special casing
+
+    // If the low version has only a major, then it will always be a major
+    // Some examples:
+    // 1.0.0-1 -> 1.0.0
+    // 1.0.0-1 -> 1.1.1
+    // 1.0.0-1 -> 2.0.0
+    if (!lowVersion.patch && !lowVersion.minor) {
+      return 'major'
+    }
+
+    // Otherwise it can be determined by checking the high version
+
+    if (highVersion.patch) {
+      // anything higher than a patch bump would result in the wrong version
+      return 'patch'
+    }
+
+    if (highVersion.minor) {
+      // anything higher than a minor bump would result in the wrong version
+      return 'minor'
+    }
+
+    // bumping major/minor/patch all have same result
+    return 'major'
+  }
 
   // add the `pre` prefix if we are going to a prerelease version
   const prefix = highHasPre ? 'pre' : ''
@@ -43239,26 +43457,8 @@ const diff = (version1, version2) => {
     return prefix + 'patch'
   }
 
-  // at this point we know stable versions match but overall versions are not equal,
-  // so either they are both prereleases, or the lower version is a prerelease
-
-  if (highHasPre) {
-    // high and low are preleases
-    return 'prerelease'
-  }
-
-  if (lowVersion.patch) {
-    // anything higher than a patch bump would result in the wrong version
-    return 'patch'
-  }
-
-  if (lowVersion.minor) {
-    // anything higher than a minor bump would result in the wrong version
-    return 'minor'
-  }
-
-  // bumping major/minor/patch all have same result
-  return 'major'
+  // high and low are preleases
+  return 'prerelease'
 }
 
 module.exports = diff
@@ -43688,16 +43888,27 @@ exports = module.exports = {}
 
 // The actual regexps go on exports.re
 const re = exports.re = []
+const safeRe = exports.safeRe = []
 const src = exports.src = []
 const t = exports.t = {}
 let R = 0
 
 const createToken = (name, value, isGlobal) => {
+  // Replace all greedy whitespace to prevent regex dos issues. These regex are
+  // used internally via the safeRe object since all inputs in this library get
+  // normalized first to trim and collapse all extra whitespace. The original
+  // regexes are exported for userland consumption and lower level usage. A
+  // future breaking change could export the safer regex only with a note that
+  // all input should have extra whitespace removed.
+  const safe = value
+    .split('\\s*').join('\\s{0,1}')
+    .split('\\s+').join('\\s')
   const index = R++
   debug(name, index, value)
   t[name] = index
   src[index] = value
   re[index] = new RegExp(value, isGlobal ? 'g' : undefined)
+  safeRe[index] = new RegExp(safe, isGlobal ? 'g' : undefined)
 }
 
 // The following Regular Expressions can be used for tokenizing,
