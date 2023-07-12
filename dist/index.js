@@ -48543,6 +48543,7 @@ const {
   queryActionDependencies,
   queryBranchProtection,
   queryCodeScanningAlerts,
+  queryCodespaces,
   queryCommitCount,
   queryDependabotAlerts,
   queryRepository,
@@ -48704,6 +48705,7 @@ const action = async () => {
     console.log("🐿️ Getting org data");
 
     // Get users data from org
+    console.log("👤 Getting user data");
     const usersData = await queryUsers(octokit, owner);
 
     const usersDataChunks = usersData.users;
@@ -48723,6 +48725,28 @@ const action = async () => {
       console.log(`⏱️ ${chunk.length} users sent to Azure Log Analytics.`);
     }
     console.log("✅ Users data sent to Azure Log Analytics");
+
+    // Get codespaces data from org
+    console.log("🖥️ Getting codespaces data");
+    const codespacesData = await queryCodespaces(octokit, owner);
+
+    const codespacesDataChunks = codespacesData.codespaces;
+
+    for (let i = 0; i < codespacesDataChunks.length; i += chunkSize) {
+      const chunk = codespacesDataChunks.slice(i, i + chunkSize);
+      let data = {
+        codespaces: chunk,
+      };
+
+      await postData(
+        logAnalyticsWorkspaceId,
+        logAnalyticsWorkspaceKey,
+        { ...codespacesData, ...data },
+        prefix + "Codespaces"
+      );
+      console.log(`⏱️ ${chunk.length} codespaces sent to Azure Log Analytics.`);
+    }
+    console.log("✅ Codespaces data sent to Azure Log Analytics");
   }
 };
 
@@ -48943,6 +48967,43 @@ const queryCodeScanningAlerts = async (octokit, owner, repo) => {
   };
 };
 
+const queryCodespaces = async (octokit, owner) => {
+  let codespaces = [];
+  await octokit
+    .paginate(octokit.rest.codespaces.listInOrganization, { org: owner })
+    .then((listedCodespaces) => {
+      for (const codespace of listedCodespaces) {
+        codespaces.push({
+          id: codespace.id,
+          name: codespace.name,
+          environment_id: codespace.environment_id,
+          owner: codespace.owner.login,
+          billable_owner: codespace.billable_owner.login,
+          repository: codespace.repository.full_name,
+          machine_name: codespace.machine.name,
+          machine_display_name: codespace.machine.display_name,
+          machine_os: codespace.machine.operating_system,
+          machine_storage_in_bytes: codespace.machine.storage_in_bytes,
+          machine_memory_in_bytes: codespace.machine.memory_in_bytes,
+          machine_cpus: codespace.machine.cpus,
+          prebuild: codespace.prebuild,
+          devcontainer_path: codespace.devcontainer_path,
+          created_at: codespace.created_at,
+          updated_at: codespace.updated_at,
+          last_used_at: codespace.last_used_at,
+          state: codespace.state,
+          location: codespace.location,
+          idle_timeout_minutes: codespace.idle_timeout_minutes,
+        });
+      }
+    });
+  return {
+    metadata_owner: owner,
+    metadata_query: "codespaces",
+    codespaces: codespaces,
+  };
+};
+
 const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {
   let date = new Date();
   let pastDate = new Date(
@@ -49113,6 +49174,7 @@ module.exports = {
   queryActionDependencies: queryActionDependencies,
   queryBranchProtection: queryBranchProtection,
   queryCodeScanningAlerts: queryCodeScanningAlerts,
+  queryCodespaces: queryCodespaces,
   queryCommitCount: queryCommitCount,
   queryDependabotAlerts: queryDependabotAlerts,
   queryRepository: queryRepository,

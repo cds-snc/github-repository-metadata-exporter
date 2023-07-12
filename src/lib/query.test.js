@@ -6,6 +6,7 @@ const {
   queryActionDependencies,
   queryBranchProtection,
   queryCodeScanningAlerts,
+  queryCodespaces,
   queryCommitCount,
   queryDependabotAlerts,
   queryRepository,
@@ -119,6 +120,135 @@ describe("queryBranchProtection", () => {
     ).rejects.toThrow(
       `Failed to get branch protection for ${branch} on ${owner}/${repo}: ${response.status}`
     );
+  });
+});
+
+describe("queryCodespaces", () => {
+  test("returns org codespaces data if the request succeeds", async () => {
+    const response = {
+      status: 200,
+      data: [
+        {
+          id: 123,
+          name: "name",
+          environment_id: "environment_id",
+          owner: { login: "owner" },
+          billable_owner: { login: "billable_owner" },
+          repository: { full_name: "full_name" },
+          machine: {
+            name: "machine_name",
+            display_name: "display_name",
+            operating_system: "os",
+            storage_in_bytes: 123,
+            memory_in_bytes: 123,
+            cpus: 123,
+          },
+          prebuild: "prebuild",
+          devcontainer_path: "devcontainer_path",
+          created_at: "created_at",
+          updated_at: "updated_at",
+          last_used_at: "last_used_at",
+          state: "state",
+          location: "location",
+          idle_timeout_minutes: 123,
+        },
+        {
+          id: 456,
+          name: "name",
+          environment_id: "environment_id",
+          owner: { login: "owner" },
+          billable_owner: { login: "billable_owner" },
+          repository: { full_name: "full_name" },
+          machine: {
+            name: "machine_name",
+            display_name: "display_name",
+            operating_system: "os",
+            storage_in_bytes: 123,
+            memory_in_bytes: 123,
+            cpus: 123,
+          },
+          prebuild: "prebuild",
+          devcontainer_path: "devcontainer_path",
+          created_at: "created_at",
+          updated_at: "updated_at",
+          last_used_at: "last_used_at",
+          state: "state",
+          location: "location",
+          idle_timeout_minutes: 123,
+        },
+      ],
+    };
+
+    const octokit = {
+      paginate: () =>
+        new Promise((resolve) => {
+          resolve(response.data);
+        }),
+      rest: {
+        codespaces: {
+          listInOrganization: jest.fn(),
+        },
+      },
+    };
+
+    const owner = "owner";
+
+    when(octokit.rest.codespaces.listInOrganization)
+      .calledWith({ orgs: owner })
+      .mockReturnValue(response);
+
+    const result = await queryCodespaces(octokit, owner);
+
+    expect(result).toEqual({
+      codespaces: [
+        {
+          id: 123,
+          name: "name",
+          environment_id: "environment_id",
+          owner: "owner",
+          billable_owner: "billable_owner",
+          repository: "full_name",
+          machine_name: "machine_name",
+          machine_display_name: "display_name",
+          machine_os: "os",
+          machine_storage_in_bytes: 123,
+          machine_memory_in_bytes: 123,
+          machine_cpus: 123,
+          prebuild: "prebuild",
+          devcontainer_path: "devcontainer_path",
+          created_at: "created_at",
+          updated_at: "updated_at",
+          last_used_at: "last_used_at",
+          state: "state",
+          location: "location",
+          idle_timeout_minutes: 123,
+        },
+        {
+          id: 456,
+          name: "name",
+          environment_id: "environment_id",
+          owner: "owner",
+          billable_owner: "billable_owner",
+          repository: "full_name",
+          machine_name: "machine_name",
+          machine_display_name: "display_name",
+          machine_os: "os",
+          machine_storage_in_bytes: 123,
+          machine_memory_in_bytes: 123,
+          machine_cpus: 123,
+          prebuild: "prebuild",
+          devcontainer_path: "devcontainer_path",
+          created_at: "created_at",
+          updated_at: "updated_at",
+          last_used_at: "last_used_at",
+          state: "state",
+          location: "location",
+          idle_timeout_minutes: 123,
+        },
+      ],
+      metadata_owner: "owner",
+      metadata_query: "codespaces",
+    });
   });
 });
 

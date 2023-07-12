@@ -12,6 +12,7 @@ const {
   queryActionDependencies,
   queryBranchProtection,
   queryCodeScanningAlerts,
+  queryCodespaces,
   queryCommitCount,
   queryDependabotAlerts,
   queryRepository,
@@ -109,6 +110,12 @@ describe("action", () => {
       users: Array.from(Array(dataSize).keys()),
     };
 
+    const codespacesData = {
+      metadata_owner: "cds-snc",
+      metadata_query: "codespaces",
+      codespaces: Array.from(Array(dataSize).keys()),
+    };
+
     when(queryCodeScanningAlerts)
       .calledWith("octokit", "owner", "repo")
       .mockReturnValue(codeScanningData);
@@ -122,6 +129,10 @@ describe("action", () => {
       .mockReturnValue(sampleData);
 
     when(queryUsers).calledWith("octokit", "owner").mockReturnValue(usersData);
+
+    when(queryCodespaces)
+      .calledWith("octokit", "owner")
+      .mockReturnValue(codespacesData);
 
     await action();
 
@@ -225,6 +236,20 @@ describe("action", () => {
           users: usersData.users.slice(index, index + chunkSize),
         },
         "GitHubMetadata_Users"
+      );
+    }
+
+    expect(queryCodespaces).toHaveBeenCalled();
+    for (let index = 0; index < dataSize; index += chunkSize) {
+      expect(postData).toHaveBeenCalledWith(
+        "log-analytics-workspace-id",
+        "log-analytics-workspace-key",
+        {
+          metadata_owner: "cds-snc",
+          metadata_query: "codespaces",
+          codespaces: codespacesData.codespaces.slice(index, index + chunkSize),
+        },
+        "GitHubMetadata_Codespaces"
       );
     }
   });

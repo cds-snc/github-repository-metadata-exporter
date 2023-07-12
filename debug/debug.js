@@ -3,7 +3,7 @@
 const github = require("@actions/github");
 const { createAppAuth } = require("@octokit/auth-app");
 
-const { queryActionDependencies, queryBranchProtection, queryCodeScanningAlerts, queryCommitCount, queryDependabotAlerts, queryRepository, queryRequiredFiles, queryRenovatePRs, queryUsers } = require("../src/lib/query.js");
+const { queryActionDependencies, queryBranchProtection, queryCodeScanningAlerts, queryCodespaces, queryCommitCount, queryDependabotAlerts, queryRepository, queryRequiredFiles, queryRenovatePRs, queryUsers } = require("../src/lib/query.js");
 
 const run = async () => {
 
@@ -79,6 +79,12 @@ const run = async () => {
     console.log("Users data");
     console.log("======================");
     console.log(`Found ${usersData.users.length} users`);
+
+    // Get codespaces data
+    const codespacesData = await queryCodespaces(octokit, owner);
+    console.log("Codespaces data");
+    console.log("======================");
+    console.log(`Found ${codespacesData.codespaces.length} codespaces`);
 };
 
 run();
