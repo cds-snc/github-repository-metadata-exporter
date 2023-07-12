@@ -9,6 +9,7 @@ const {
   queryActionDependencies,
   queryBranchProtection,
   queryCodeScanningAlerts,
+  queryCodespaces,
   queryCommitCount,
   queryDependabotAlerts,
   queryRepository,
@@ -170,6 +171,7 @@ const action = async () => {
     console.log("🐿️ Getting org data");
 
     // Get users data from org
+    console.log("👤 Getting user data");
     const usersData = await queryUsers(octokit, owner);
 
     const usersDataChunks = usersData.users;
@@ -189,6 +191,28 @@ const action = async () => {
       console.log(`⏱️ ${chunk.length} users sent to Azure Log Analytics.`);
     }
     console.log("✅ Users data sent to Azure Log Analytics");
+
+    // Get codespaces data from org
+    console.log("🖥️ Getting codespaces data");
+    const codespacesData = await queryCodespaces(octokit, owner);
+
+    const codespacesDataChunks = codespacesData.codespaces;
+
+    for (let i = 0; i < codespacesDataChunks.length; i += chunkSize) {
+      const chunk = codespacesDataChunks.slice(i, i + chunkSize);
+      let data = {
+        codespaces: chunk,
+      };
+
+      await postData(
+        logAnalyticsWorkspaceId,
+        logAnalyticsWorkspaceKey,
+        { ...codespacesData, ...data },
+        prefix + "Codespaces"
+      );
+      console.log(`⏱️ ${chunk.length} codespaces sent to Azure Log Analytics.`);
+    }
+    console.log("✅ Codespaces data sent to Azure Log Analytics");
   }
 };
 
