@@ -270,7 +270,7 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
   let prs = [];
   await octokit
     .paginate(octokit.rest.search.issuesAndPullRequests, {
-      q: `is:pull-request+repo:${owner}/${repo}+label:dependencies`,
+      q: `is:pull-request+repo:${owner}/${repo}+label:dependencies+state:open`,
     })
     .then((listedPRs) => {
       for (const pr of listedPRs) {
