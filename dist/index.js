@@ -9488,12 +9488,13 @@ module.exports = function callBoundIntrinsic(name, allowMissing) {
 
 var bind = __nccwpck_require__(8334);
 var GetIntrinsic = __nccwpck_require__(4538);
+var setFunctionLength = __nccwpck_require__(4056);
 
+var $TypeError = GetIntrinsic('%TypeError%');
 var $apply = GetIntrinsic('%Function.prototype.apply%');
 var $call = GetIntrinsic('%Function.prototype.call%');
 var $reflectApply = GetIntrinsic('%Reflect.apply%', true) || bind.call($call, $apply);
 
-var $gOPD = GetIntrinsic('%Object.getOwnPropertyDescriptor%', true);
 var $defineProperty = GetIntrinsic('%Object.defineProperty%', true);
 var $max = GetIntrinsic('%Math.max%');
 
@@ -9507,19 +9508,15 @@ if ($defineProperty) {
 }
 
 module.exports = function callBind(originalFunction) {
-	var func = $reflectApply(bind, $call, arguments);
-	if ($gOPD && $defineProperty) {
-		var desc = $gOPD(func, 'length');
-		if (desc.configurable) {
-			// original length, plus the receiver, minus any additional arguments (after the receiver)
-			$defineProperty(
-				func,
-				'length',
-				{ value: 1 + $max(0, originalFunction.length - (arguments.length - 1)) }
-			);
-		}
+	if (typeof originalFunction !== 'function') {
+		throw new $TypeError('a function is required');
 	}
-	return func;
+	var func = $reflectApply(bind, $call, arguments);
+	return setFunctionLength(
+		func,
+		1 + $max(0, originalFunction.length - (arguments.length - 1)),
+		true
+	);
 };
 
 var applyBind = function applyBind() {
@@ -10877,6 +10874,82 @@ formatters.o = function (v) {
 formatters.O = function (v) {
 	this.inspectOpts.colors = this.useColors;
 	return util.inspect(v, this.inspectOpts);
+};
+
+
+/***/ }),
+
+/***/ 4564:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var hasPropertyDescriptors = __nccwpck_require__(176)();
+
+var GetIntrinsic = __nccwpck_require__(4538);
+
+var $defineProperty = hasPropertyDescriptors && GetIntrinsic('%Object.defineProperty%', true);
+if ($defineProperty) {
+	try {
+		$defineProperty({}, 'a', { value: 1 });
+	} catch (e) {
+		// IE 8 has a broken defineProperty
+		$defineProperty = false;
+	}
+}
+
+var $SyntaxError = GetIntrinsic('%SyntaxError%');
+var $TypeError = GetIntrinsic('%TypeError%');
+
+var gopd = __nccwpck_require__(8501);
+
+/** @type {(obj: Record<PropertyKey, unknown>, property: PropertyKey, value: unknown, nonEnumerable?: boolean | null, nonWritable?: boolean | null, nonConfigurable?: boolean | null, loose?: boolean) => void} */
+module.exports = function defineDataProperty(
+	obj,
+	property,
+	value
+) {
+	if (!obj || (typeof obj !== 'object' && typeof obj !== 'function')) {
+		throw new $TypeError('`obj` must be an object or a function`');
+	}
+	if (typeof property !== 'string' && typeof property !== 'symbol') {
+		throw new $TypeError('`property` must be a string or a symbol`');
+	}
+	if (arguments.length > 3 && typeof arguments[3] !== 'boolean' && arguments[3] !== null) {
+		throw new $TypeError('`nonEnumerable`, if provided, must be a boolean or null');
+	}
+	if (arguments.length > 4 && typeof arguments[4] !== 'boolean' && arguments[4] !== null) {
+		throw new $TypeError('`nonWritable`, if provided, must be a boolean or null');
+	}
+	if (arguments.length > 5 && typeof arguments[5] !== 'boolean' && arguments[5] !== null) {
+		throw new $TypeError('`nonConfigurable`, if provided, must be a boolean or null');
+	}
+	if (arguments.length > 6 && typeof arguments[6] !== 'boolean') {
+		throw new $TypeError('`loose`, if provided, must be a boolean');
+	}
+
+	var nonEnumerable = arguments.length > 3 ? arguments[3] : null;
+	var nonWritable = arguments.length > 4 ? arguments[4] : null;
+	var nonConfigurable = arguments.length > 5 ? arguments[5] : null;
+	var loose = arguments.length > 6 ? arguments[6] : false;
+
+	/* @type {false | TypedPropertyDescriptor<unknown>} */
+	var desc = !!gopd && gopd(obj, property);
+
+	if ($defineProperty) {
+		$defineProperty(obj, property, {
+			configurable: nonConfigurable === null && desc ? desc.configurable : !nonConfigurable,
+			enumerable: nonEnumerable === null && desc ? desc.enumerable : !nonEnumerable,
+			value: value,
+			writable: nonWritable === null && desc ? desc.writable : !nonWritable
+		});
+	} else if (loose || (!nonEnumerable && !nonWritable && !nonConfigurable)) {
+		// must fall back to [[Set]], and was not explicitly asked to make non-enumerable, non-writable, or non-configurable
+		obj[property] = value; // eslint-disable-line no-param-reassign
+	} else {
+		throw new $SyntaxError('This environment does not support defining a property as non-configurable, non-writable, or non-enumerable.');
+	}
 };
 
 
@@ -14189,7 +14262,7 @@ var LEGACY_ALIASES = {
 };
 
 var bind = __nccwpck_require__(8334);
-var hasOwn = __nccwpck_require__(6339);
+var hasOwn = __nccwpck_require__(2157);
 var $concat = bind.call(Function.call, Array.prototype.concat);
 var $spliceApply = bind.call(Function.apply, Array.prototype.splice);
 var $replace = bind.call(Function.call, String.prototype.replace);
@@ -14328,6 +14401,30 @@ module.exports = function GetIntrinsic(name, allowMissing) {
 
 /***/ }),
 
+/***/ 8501:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var GetIntrinsic = __nccwpck_require__(4538);
+
+var $gOPD = GetIntrinsic('%Object.getOwnPropertyDescriptor%', true);
+
+if ($gOPD) {
+	try {
+		$gOPD([], 'length');
+	} catch (e) {
+		// IE 8 has a broken gOPD
+		$gOPD = null;
+	}
+}
+
+module.exports = $gOPD;
+
+
+/***/ }),
+
 /***/ 1621:
 /***/ ((module) => {
 
@@ -14340,6 +14437,47 @@ module.exports = (flag, argv = process.argv) => {
 	const terminatorPosition = argv.indexOf('--');
 	return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
 };
+
+
+/***/ }),
+
+/***/ 176:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var GetIntrinsic = __nccwpck_require__(4538);
+
+var $defineProperty = GetIntrinsic('%Object.defineProperty%', true);
+
+var hasPropertyDescriptors = function hasPropertyDescriptors() {
+	if ($defineProperty) {
+		try {
+			$defineProperty({}, 'a', { value: 1 });
+			return true;
+		} catch (e) {
+			// IE 8 has a broken defineProperty
+			return false;
+		}
+	}
+	return false;
+};
+
+hasPropertyDescriptors.hasArrayLengthDefineBug = function hasArrayLengthDefineBug() {
+	// node v0.6 has a bug where array lengths can be Set but not Defined
+	if (!hasPropertyDescriptors()) {
+		return null;
+	}
+	try {
+		return $defineProperty([], 'length', { value: 1 }).length !== 1;
+	} catch (e) {
+		// In Firefox 4-22, defining length on an array throws an exception.
+		return true;
+	}
+};
+
+module.exports = hasPropertyDescriptors;
 
 
 /***/ }),
@@ -14434,18 +14572,18 @@ module.exports = function hasSymbols() {
 
 /***/ }),
 
-/***/ 6339:
-/***/ ((module) => {
+/***/ 2157:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-var hasOwnProperty = {}.hasOwnProperty;
 var call = Function.prototype.call;
+var $hasOwn = Object.prototype.hasOwnProperty;
+var bind = __nccwpck_require__(8334);
 
-module.exports = call.bind ? call.bind(hasOwnProperty) : function (O, P) {
-  return call.call(hasOwnProperty, O, P);
-};
+/** @type {(o: {}, p: PropertyKey) => p is keyof o} */
+module.exports = bind.call(call, $hasOwn);
 
 
 /***/ }),
@@ -23498,12 +23636,13 @@ module.exports = function inspect_(obj, options, depth, seen) {
     if (isString(obj)) {
         return markBoxed(inspect(String(obj)));
     }
+    // note: in IE 8, sometimes `global !== window` but both are the prototypes of each other
+    /* eslint-env browser */
+    if (typeof window !== 'undefined' && obj === window) {
+        return '{ [object Window] }';
+    }
     if (obj === global) {
-        /* eslint-env browser */
-        if (typeof window !== 'undefined') {
-            return '{ [object Window] }';
-        }
-        return '{ [object global] }';
+        return '{ [object globalThis] }';
     }
     if (!isDate(obj) && !isRegExp(obj)) {
         var ys = arrObjKeys(obj, inspect);
@@ -24819,6 +24958,55 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   }
   return buffer.SlowBuffer(size)
 }
+
+
+/***/ }),
+
+/***/ 4056:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var GetIntrinsic = __nccwpck_require__(4538);
+var define = __nccwpck_require__(4564);
+var hasDescriptors = __nccwpck_require__(176)();
+var gOPD = __nccwpck_require__(8501);
+
+var $TypeError = GetIntrinsic('%TypeError%');
+var $floor = GetIntrinsic('%Math.floor%');
+
+module.exports = function setFunctionLength(fn, length) {
+	if (typeof fn !== 'function') {
+		throw new $TypeError('`fn` is not a function');
+	}
+	if (typeof length !== 'number' || length < 0 || length > 0xFFFFFFFF || $floor(length) !== length) {
+		throw new $TypeError('`length` must be a positive 32-bit integer');
+	}
+
+	var loose = arguments.length > 2 && !!arguments[2];
+
+	var functionLengthIsConfigurable = true;
+	var functionLengthIsWritable = true;
+	if ('length' in fn && gOPD) {
+		var desc = gOPD(fn, 'length');
+		if (desc && !desc.configurable) {
+			functionLengthIsConfigurable = false;
+		}
+		if (desc && !desc.writable) {
+			functionLengthIsWritable = false;
+		}
+	}
+
+	if (functionLengthIsConfigurable || functionLengthIsWritable || !loose) {
+		if (hasDescriptors) {
+			define(fn, 'length', length, true, true);
+		} else {
+			define(fn, 'length', length);
+		}
+	}
+	return fn;
+};
 
 
 /***/ }),
@@ -32893,6 +33081,10 @@ class StreamHandler extends AsyncResource {
         { callback, body: res, contentType, statusCode, statusMessage, headers }
       )
     } else {
+      if (factory === null) {
+        return
+      }
+
       res = this.runInAsyncScope(factory, null, {
         statusCode,
         headers,
@@ -32941,13 +33133,17 @@ class StreamHandler extends AsyncResource {
   onData (chunk) {
     const { res } = this
 
-    return res.write(chunk)
+    return res ? res.write(chunk) : true
   }
 
   onComplete (trailers) {
     const { res } = this
 
     removeSignal(this)
+
+    if (!res) {
+      return
+    }
 
     this.trailers = util.parseHeaders(trailers)
 
@@ -33405,7 +33601,7 @@ function consumeEnd (consume) {
         pos += buf.byteLength
       }
 
-      resolve(dst)
+      resolve(dst.buffer)
     } else if (type === 'blob') {
       if (!Blob) {
         Blob = (__nccwpck_require__(4300).Blob)
@@ -35841,7 +36037,9 @@ function onParserTimeout (parser) {
 
 function onSocketReadable () {
   const { [kParser]: parser } = this
-  parser.readMore()
+  if (parser) {
+    parser.readMore()
+  }
 }
 
 function onSocketError (err) {
@@ -42375,7 +42573,7 @@ class Fetch extends EE {
 }
 
 // https://fetch.spec.whatwg.org/#fetch-method
-async function fetch (input, init = {}) {
+function fetch (input, init = {}) {
   webidl.argumentLengthCheck(arguments, 1, { header: 'globalThis.fetch' })
 
   // 1. Let p be a new promise.
@@ -42458,7 +42656,7 @@ async function fetch (input, init = {}) {
   const processResponse = (response) => {
     // 1. If locallyAborted is true, terminate these substeps.
     if (locallyAborted) {
-      return
+      return Promise.resolve()
     }
 
     // 2. If response’s aborted flag is set, then:
@@ -42471,7 +42669,7 @@ async function fetch (input, init = {}) {
       //    deserializedError.
 
       abortFetch(p, request, responseObject, controller.serializedAbortReason)
-      return
+      return Promise.resolve()
     }
 
     // 3. If response is a network error, then reject p with a TypeError
@@ -42480,7 +42678,7 @@ async function fetch (input, init = {}) {
       p.reject(
         Object.assign(new TypeError('fetch failed'), { cause: response.error })
       )
-      return
+      return Promise.resolve()
     }
 
     // 4. Set responseObject to the result of creating a Response object,
@@ -43030,13 +43228,13 @@ async function mainFetch (fetchParams, recursive = false) {
 
 // https://fetch.spec.whatwg.org/#concept-scheme-fetch
 // given a fetch params fetchParams
-async function schemeFetch (fetchParams) {
+function schemeFetch (fetchParams) {
   // Note: since the connection is destroyed on redirect, which sets fetchParams to a
   // cancelled state, we do not want this condition to trigger *unless* there have been
   // no redirects. See https://github.com/nodejs/undici/issues/1776
   // 1. If fetchParams is canceled, then return the appropriate network error for fetchParams.
   if (isCancelled(fetchParams) && fetchParams.request.redirectCount === 0) {
-    return makeAppropriateNetworkError(fetchParams)
+    return Promise.resolve(makeAppropriateNetworkError(fetchParams))
   }
 
   // 2. Let request be fetchParams’s request.
@@ -43052,7 +43250,7 @@ async function schemeFetch (fetchParams) {
       // and body is the empty byte sequence as a body.
 
       // Otherwise, return a network error.
-      return makeNetworkError('about scheme is not supported')
+      return Promise.resolve(makeNetworkError('about scheme is not supported'))
     }
     case 'blob:': {
       if (!resolveObjectURL) {
@@ -43065,7 +43263,7 @@ async function schemeFetch (fetchParams) {
       // https://github.com/web-platform-tests/wpt/blob/7b0ebaccc62b566a1965396e5be7bb2bc06f841f/FileAPI/url/resources/fetch-tests.js#L52-L56
       // Buffer.resolveObjectURL does not ignore URL queries.
       if (blobURLEntry.search.length !== 0) {
-        return makeNetworkError('NetworkError when attempting to fetch resource.')
+        return Promise.resolve(makeNetworkError('NetworkError when attempting to fetch resource.'))
       }
 
       const blobURLEntryObject = resolveObjectURL(blobURLEntry.toString())
@@ -43073,7 +43271,7 @@ async function schemeFetch (fetchParams) {
       // 2. If request’s method is not `GET`, blobURLEntry is null, or blobURLEntry’s
       //    object is not a Blob object, then return a network error.
       if (request.method !== 'GET' || !isBlobLike(blobURLEntryObject)) {
-        return makeNetworkError('invalid method')
+        return Promise.resolve(makeNetworkError('invalid method'))
       }
 
       // 3. Let bodyWithType be the result of safely extracting blobURLEntry’s object.
@@ -43100,7 +43298,7 @@ async function schemeFetch (fetchParams) {
 
       response.body = body
 
-      return response
+      return Promise.resolve(response)
     }
     case 'data:': {
       // 1. Let dataURLStruct be the result of running the
@@ -43111,7 +43309,7 @@ async function schemeFetch (fetchParams) {
       // 2. If dataURLStruct is failure, then return a
       //    network error.
       if (dataURLStruct === 'failure') {
-        return makeNetworkError('failed to fetch the data URL')
+        return Promise.resolve(makeNetworkError('failed to fetch the data URL'))
       }
 
       // 3. Let mimeType be dataURLStruct’s MIME type, serialized.
@@ -43120,28 +43318,28 @@ async function schemeFetch (fetchParams) {
       // 4. Return a response whose status message is `OK`,
       //    header list is « (`Content-Type`, mimeType) »,
       //    and body is dataURLStruct’s body as a body.
-      return makeResponse({
+      return Promise.resolve(makeResponse({
         statusText: 'OK',
         headersList: [
           ['content-type', { name: 'Content-Type', value: mimeType }]
         ],
         body: safelyExtractBody(dataURLStruct.body)[0]
-      })
+      }))
     }
     case 'file:': {
       // For now, unfortunate as it is, file URLs are left as an exercise for the reader.
       // When in doubt, return a network error.
-      return makeNetworkError('not implemented... yet...')
+      return Promise.resolve(makeNetworkError('not implemented... yet...'))
     }
     case 'http:':
     case 'https:': {
       // Return the result of running HTTP fetch given fetchParams.
 
-      return await httpFetch(fetchParams)
+      return httpFetch(fetchParams)
         .catch((err) => makeNetworkError(err))
     }
     default: {
-      return makeNetworkError('unknown scheme')
+      return Promise.resolve(makeNetworkError('unknown scheme'))
     }
   }
 }
@@ -43160,7 +43358,7 @@ function finalizeResponse (fetchParams, response) {
 }
 
 // https://fetch.spec.whatwg.org/#fetch-finale
-async function fetchFinale (fetchParams, response) {
+function fetchFinale (fetchParams, response) {
   // 1. If response is a network error, then:
   if (response.type === 'error') {
     // 1. Set response’s URL list to « fetchParams’s request’s URL list[0] ».
@@ -43244,8 +43442,9 @@ async function fetchFinale (fetchParams, response) {
     } else {
       // 4. Otherwise, fully read response’s body given processBody, processBodyError,
       // and fetchParams’s task destination.
-      await fullyReadBody(response.body, processBody, processBodyError)
+      return fullyReadBody(response.body, processBody, processBodyError)
     }
+    return Promise.resolve()
   }
 }
 
@@ -43353,7 +43552,7 @@ async function httpFetch (fetchParams) {
 }
 
 // https://fetch.spec.whatwg.org/#http-redirect-fetch
-async function httpRedirectFetch (fetchParams, response) {
+function httpRedirectFetch (fetchParams, response) {
   // 1. Let request be fetchParams’s request.
   const request = fetchParams.request
 
@@ -43379,18 +43578,18 @@ async function httpRedirectFetch (fetchParams, response) {
     }
   } catch (err) {
     // 5. If locationURL is failure, then return a network error.
-    return makeNetworkError(err)
+    return Promise.resolve(makeNetworkError(err))
   }
 
   // 6. If locationURL’s scheme is not an HTTP(S) scheme, then return a network
   // error.
   if (!urlIsHttpHttpsScheme(locationURL)) {
-    return makeNetworkError('URL scheme must be a HTTP(S) scheme')
+    return Promise.resolve(makeNetworkError('URL scheme must be a HTTP(S) scheme'))
   }
 
   // 7. If request’s redirect count is 20, then return a network error.
   if (request.redirectCount === 20) {
-    return makeNetworkError('redirect count exceeded')
+    return Promise.resolve(makeNetworkError('redirect count exceeded'))
   }
 
   // 8. Increase request’s redirect count by 1.
@@ -43404,7 +43603,7 @@ async function httpRedirectFetch (fetchParams, response) {
     (locationURL.username || locationURL.password) &&
     !sameOrigin(request, locationURL)
   ) {
-    return makeNetworkError('cross origin not allowed for request mode "cors"')
+    return Promise.resolve(makeNetworkError('cross origin not allowed for request mode "cors"'))
   }
 
   // 10. If request’s response tainting is "cors" and locationURL includes
@@ -43413,9 +43612,9 @@ async function httpRedirectFetch (fetchParams, response) {
     request.responseTainting === 'cors' &&
     (locationURL.username || locationURL.password)
   ) {
-    return makeNetworkError(
+    return Promise.resolve(makeNetworkError(
       'URL cannot contain credentials for request mode "cors"'
-    )
+    ))
   }
 
   // 11. If actualResponse’s status is not 303, request’s body is non-null,
@@ -43425,7 +43624,7 @@ async function httpRedirectFetch (fetchParams, response) {
     request.body != null &&
     request.body.source == null
   ) {
-    return makeNetworkError()
+    return Promise.resolve(makeNetworkError())
   }
 
   // 12. If one of the following is true
