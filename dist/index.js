@@ -36429,23 +36429,7 @@ function _resume (client, sync) {
       return
     }
 
-    if (util.isStream(request.body) && util.bodyLength(request.body) === 0) {
-      request.body
-        .on('data', /* istanbul ignore next */ function () {
-          /* istanbul ignore next */
-          assert(false)
-        })
-        .on('error', function (err) {
-          errorRequest(client, request, err)
-        })
-        .on('end', function () {
-          util.destroy(this)
-        })
-
-      request.body = null
-    }
-
-    if (client[kRunning] > 0 &&
+    if (client[kRunning] > 0 && util.bodyLength(request.body) !== 0 &&
       (util.isStream(request.body) || util.isAsyncIterable(request.body))) {
       // Request with stream or iterator body can error while other requests
       // are inflight and indirectly error those as well.
@@ -36464,6 +36448,11 @@ function _resume (client, sync) {
       client[kQueue].splice(client[kPendingIdx], 1)
     }
   }
+}
+
+// https://www.rfc-editor.org/rfc/rfc7230#section-3.3.2
+function shouldSendContentLength (method) {
+  return method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS' && method !== 'TRACE' && method !== 'CONNECT'
 }
 
 function write (client, request) {
@@ -36494,7 +36483,9 @@ function write (client, request) {
     body.read(0)
   }
 
-  let contentLength = util.bodyLength(body)
+  const bodyLength = util.bodyLength(body)
+
+  let contentLength = bodyLength
 
   if (contentLength === null) {
     contentLength = request.contentLength
@@ -36509,7 +36500,9 @@ function write (client, request) {
     contentLength = null
   }
 
-  if (request.contentLength !== null && request.contentLength !== contentLength) {
+  // https://github.com/nodejs/undici/issues/2046
+  // A user agent may send a Content-Length header with 0 value, this should be allowed.
+  if (shouldSendContentLength(method) && contentLength > 0 && request.contentLength !== null && request.contentLength !== contentLength) {
     if (client[kStrictContentLength]) {
       errorRequest(client, request, new RequestContentLengthMismatchError())
       return false
@@ -36590,7 +36583,7 @@ function write (client, request) {
   }
 
   /* istanbul ignore else: assertion */
-  if (!body) {
+  if (!body || bodyLength === 0) {
     if (contentLength === 0) {
       socket.write(`${header}content-length: 0\r\n\r\n`, 'latin1')
     } else {
@@ -36730,7 +36723,9 @@ function writeH2 (client, session, request) {
     contentLength = null
   }
 
-  if (request.contentLength != null && request.contentLength !== contentLength) {
+  // https://github.com/nodejs/undici/issues/2046
+  // A user agent may send a Content-Length header with 0 value, this should be allowed.
+  if (shouldSendContentLength(method) && contentLength > 0 && request.contentLength != null && request.contentLength !== contentLength) {
     if (client[kStrictContentLength]) {
       errorRequest(client, request, new RequestContentLengthMismatchError())
       return false
@@ -38692,10 +38687,29 @@ class Request {
 
     this.method = method
 
+    this.abort = null
+
     if (body == null) {
       this.body = null
     } else if (util.isStream(body)) {
       this.body = body
+
+      const rState = this.body._readableState
+      if (!rState || !rState.autoDestroy) {
+        this.endHandler = function autoDestroy () {
+          util.destroy(this)
+        }
+        this.body.on('end', this.endHandler)
+      }
+
+      this.errorHandler = err => {
+        if (this.abort) {
+          this.abort(err)
+        } else {
+          this.error = err
+        }
+      }
+      this.body.on('error', this.errorHandler)
     } else if (util.isBuffer(body)) {
       this.body = body.byteLength ? body : null
     } else if (ArrayBuffer.isView(body)) {
@@ -38802,13 +38816,26 @@ class Request {
     if (channels.bodySent.hasSubscribers) {
       channels.bodySent.publish({ request: this })
     }
+
+    if (this[kHandler].onRequestSent) {
+      try {
+        this[kHandler].onRequestSent()
+      } catch (err) {
+        this.onError(err)
+      }
+    }
   }
 
   onConnect (abort) {
     assert(!this.aborted)
     assert(!this.completed)
 
-    return this[kHandler].onConnect(abort)
+    if (this.error) {
+      abort(this.error)
+    } else {
+      this.abort = abort
+      return this[kHandler].onConnect(abort)
+    }
   }
 
   onHeaders (statusCode, headers, resume, statusText) {
@@ -38837,6 +38864,8 @@ class Request {
   }
 
   onComplete (trailers) {
+    this.onFinally()
+
     assert(!this.aborted)
 
     this.completed = true
@@ -38847,6 +38876,8 @@ class Request {
   }
 
   onError (error) {
+    this.onFinally()
+
     if (channels.error.hasSubscribers) {
       channels.error.publish({ request: this, error })
     }
@@ -38856,6 +38887,18 @@ class Request {
     }
     this.aborted = true
     return this[kHandler].onError(error)
+  }
+
+  onFinally () {
+    if (this.errorHandler) {
+      this.body.off('error', this.errorHandler)
+      this.errorHandler = null
+    }
+
+    if (this.endHandler) {
+      this.body.off('end', this.endHandler)
+      this.endHandler = null
+    }
   }
 
   // TODO: adjust to support H2
@@ -39281,7 +39324,7 @@ function isReadableAborted (stream) {
 }
 
 function destroy (stream, err) {
-  if (!isStream(stream) || isDestroyed(stream)) {
+  if (stream == null || !isStream(stream) || isDestroyed(stream)) {
     return
   }
 
@@ -39855,6 +39898,8 @@ let ReadableStream = globalThis.ReadableStream
 
 /** @type {globalThis['File']} */
 const File = NativeFile ?? UndiciFile
+const textEncoder = new TextEncoder()
+const textDecoder = new TextDecoder()
 
 // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
 function extractBody (object, keepalive = false) {
@@ -39878,7 +39923,7 @@ function extractBody (object, keepalive = false) {
     stream = new ReadableStream({
       async pull (controller) {
         controller.enqueue(
-          typeof source === 'string' ? new TextEncoder().encode(source) : source
+          typeof source === 'string' ? textEncoder.encode(source) : source
         )
         queueMicrotask(() => readableStreamClose(controller))
       },
@@ -39948,7 +39993,6 @@ function extractBody (object, keepalive = false) {
     // - That the content-length is calculated in advance.
     // - And that all parts are pre-encoded and ready to be sent.
 
-    const enc = new TextEncoder()
     const blobParts = []
     const rn = new Uint8Array([13, 10]) // '\r\n'
     length = 0
@@ -39956,13 +40000,13 @@ function extractBody (object, keepalive = false) {
 
     for (const [name, value] of object) {
       if (typeof value === 'string') {
-        const chunk = enc.encode(prefix +
+        const chunk = textEncoder.encode(prefix +
           `; name="${escape(normalizeLinefeeds(name))}"` +
           `\r\n\r\n${normalizeLinefeeds(value)}\r\n`)
         blobParts.push(chunk)
         length += chunk.byteLength
       } else {
-        const chunk = enc.encode(`${prefix}; name="${escape(normalizeLinefeeds(name))}"` +
+        const chunk = textEncoder.encode(`${prefix}; name="${escape(normalizeLinefeeds(name))}"` +
           (value.name ? `; filename="${escape(value.name)}"` : '') + '\r\n' +
           `Content-Type: ${
             value.type || 'application/octet-stream'
@@ -39976,7 +40020,7 @@ function extractBody (object, keepalive = false) {
       }
     }
 
-    const chunk = enc.encode(`--${boundary}--`)
+    const chunk = textEncoder.encode(`--${boundary}--`)
     blobParts.push(chunk)
     length += chunk.byteLength
     if (hasUnknownSizeValue) {
@@ -40272,14 +40316,16 @@ function bodyMixinMethods (instance) {
           let text = ''
           // application/x-www-form-urlencoded parser will keep the BOM.
           // https://url.spec.whatwg.org/#concept-urlencoded-parser
-          const textDecoder = new TextDecoder('utf-8', { ignoreBOM: true })
+          // Note that streaming decoder is stateful and cannot be reused
+          const streamingDecoder = new TextDecoder('utf-8', { ignoreBOM: true })
+
           for await (const chunk of consumeBody(this[kState].body)) {
             if (!isUint8Array(chunk)) {
               throw new TypeError('Expected Uint8Array chunk')
             }
-            text += textDecoder.decode(chunk, { stream: true })
+            text += streamingDecoder.decode(chunk, { stream: true })
           }
-          text += textDecoder.decode()
+          text += streamingDecoder.decode()
           entries = new URLSearchParams(text)
         } catch (err) {
           // istanbul ignore next: Unclear when new URLSearchParams can fail on a string.
@@ -40394,7 +40440,7 @@ function utf8DecodeBytes (buffer) {
 
   // 3. Process a queue with an instance of UTF-8’s
   //    decoder, ioQueue, output, and "replacement".
-  const output = new TextDecoder().decode(buffer)
+  const output = textDecoder.decode(buffer)
 
   // 4. Return output.
   return output
@@ -40442,10 +40488,12 @@ module.exports = {
 const { MessageChannel, receiveMessageOnPort } = __nccwpck_require__(1267)
 
 const corsSafeListedMethods = ['GET', 'HEAD', 'POST']
+const corsSafeListedMethodsSet = new Set(corsSafeListedMethods)
 
 const nullBodyStatus = [101, 204, 205, 304]
 
 const redirectStatus = [301, 302, 303, 307, 308]
+const redirectStatusSet = new Set(redirectStatus)
 
 // https://fetch.spec.whatwg.org/#block-bad-port
 const badPorts = [
@@ -40456,6 +40504,8 @@ const badPorts = [
   '2049', '3659', '4045', '5060', '5061', '6000', '6566', '6665', '6666', '6667', '6668', '6669', '6697',
   '10080'
 ]
+
+const badPortsSet = new Set(badPorts)
 
 // https://w3c.github.io/webappsec-referrer-policy/#referrer-policies
 const referrerPolicy = [
@@ -40469,10 +40519,12 @@ const referrerPolicy = [
   'strict-origin-when-cross-origin',
   'unsafe-url'
 ]
+const referrerPolicySet = new Set(referrerPolicy)
 
 const requestRedirect = ['follow', 'manual', 'error']
 
 const safeMethods = ['GET', 'HEAD', 'OPTIONS', 'TRACE']
+const safeMethodsSet = new Set(safeMethods)
 
 const requestMode = ['navigate', 'same-origin', 'no-cors', 'cors']
 
@@ -40507,6 +40559,7 @@ const requestDuplex = [
 
 // http://fetch.spec.whatwg.org/#forbidden-method
 const forbiddenMethods = ['CONNECT', 'TRACE', 'TRACK']
+const forbiddenMethodsSet = new Set(forbiddenMethods)
 
 const subresource = [
   'audio',
@@ -40522,6 +40575,7 @@ const subresource = [
   'xslt',
   ''
 ]
+const subresourceSet = new Set(subresource)
 
 /** @type {globalThis['DOMException']} */
 const DOMException = globalThis.DOMException ?? (() => {
@@ -40571,7 +40625,14 @@ module.exports = {
   nullBodyStatus,
   safeMethods,
   badPorts,
-  requestDuplex
+  requestDuplex,
+  subresourceSet,
+  badPortsSet,
+  redirectStatusSet,
+  corsSafeListedMethodsSet,
+  safeMethodsSet,
+  forbiddenMethodsSet,
+  referrerPolicySet
 }
 
 
@@ -41227,6 +41288,7 @@ const { isBlobLike } = __nccwpck_require__(2538)
 const { webidl } = __nccwpck_require__(1744)
 const { parseMIMEType, serializeAMimeType } = __nccwpck_require__(685)
 const { kEnumerableProperty } = __nccwpck_require__(3983)
+const encoder = new TextEncoder()
 
 class File extends Blob {
   constructor (fileBits, fileName, options = {}) {
@@ -41500,7 +41562,7 @@ function processBlobParts (parts, options) {
       }
 
       // 3. Append the result of UTF-8 encoding s to bytes.
-      bytes.push(new TextEncoder().encode(s))
+      bytes.push(encoder.encode(s))
     } else if (
       types.isAnyArrayBuffer(element) ||
       types.isTypedArray(element)
@@ -42498,11 +42560,11 @@ const { kState, kHeaders, kGuard, kRealm } = __nccwpck_require__(5861)
 const assert = __nccwpck_require__(9491)
 const { safelyExtractBody } = __nccwpck_require__(1472)
 const {
-  redirectStatus,
+  redirectStatusSet,
   nullBodyStatus,
-  safeMethods,
+  safeMethodsSet,
   requestBodyHeader,
-  subresource,
+  subresourceSet,
   DOMException
 } = __nccwpck_require__(1037)
 const { kHeadersList } = __nccwpck_require__(2785)
@@ -42514,6 +42576,7 @@ const { TransformStream } = __nccwpck_require__(5356)
 const { getGlobalDispatcher } = __nccwpck_require__(1892)
 const { webidl } = __nccwpck_require__(1744)
 const { STATUS_CODES } = __nccwpck_require__(3685)
+const GET_OR_HEAD = ['GET', 'HEAD']
 
 /** @type {import('buffer').resolveObjectURL} */
 let resolveObjectURL
@@ -42961,7 +43024,7 @@ function fetching ({
   }
 
   // 15. If request is a subresource request, then:
-  if (subresource.includes(request.destination)) {
+  if (subresourceSet.has(request.destination)) {
     // TODO
   }
 
@@ -43515,7 +43578,7 @@ async function httpFetch (fetchParams) {
   }
 
   // 8. If actualResponse’s status is a redirect status, then:
-  if (redirectStatus.includes(actualResponse.status)) {
+  if (redirectStatusSet.has(actualResponse.status)) {
     // 1. If actualResponse’s status is not 303, request’s body is not null,
     // and the connection uses HTTP/2, then user agents may, and are even
     // encouraged to, transmit an RST_STREAM frame.
@@ -43633,7 +43696,7 @@ function httpRedirectFetch (fetchParams, response) {
   if (
     ([301, 302].includes(actualResponse.status) && request.method === 'POST') ||
     (actualResponse.status === 303 &&
-      !['GET', 'HEAD'].includes(request.method))
+      !GET_OR_HEAD.includes(request.method))
   ) {
     // then:
     // 1. Set request’s method to `GET` and request’s body to null.
@@ -43917,7 +43980,7 @@ async function httpNetworkOrCacheFetch (
     // responses in httpCache, as per the "Invalidation" chapter of HTTP
     // Caching, and set storedResponse to null. [HTTP-CACHING]
     if (
-      !safeMethods.includes(httpRequest.method) &&
+      !safeMethodsSet.has(httpRequest.method) &&
       forwardResponse.status >= 200 &&
       forwardResponse.status <= 399
     ) {
@@ -44477,7 +44540,7 @@ async function httpNetworkFetch (
 
           const willFollow = request.redirect === 'follow' &&
             location &&
-            redirectStatus.includes(status)
+            redirectStatusSet.has(status)
 
           // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding
           if (request.method !== 'HEAD' && request.method !== 'CONNECT' && !nullBodyStatus.includes(status) && !willFollow) {
@@ -44617,8 +44680,8 @@ const {
   makePolicyContainer
 } = __nccwpck_require__(2538)
 const {
-  forbiddenMethods,
-  corsSafeListedMethods,
+  forbiddenMethodsSet,
+  corsSafeListedMethodsSet,
   referrerPolicy,
   requestRedirect,
   requestMode,
@@ -44923,7 +44986,7 @@ class Request {
         throw TypeError(`'${init.method}' is not a valid HTTP method.`)
       }
 
-      if (forbiddenMethods.indexOf(method.toUpperCase()) !== -1) {
+      if (forbiddenMethodsSet.has(method.toUpperCase())) {
         throw TypeError(`'${init.method}' HTTP method is unsupported.`)
       }
 
@@ -45008,7 +45071,7 @@ class Request {
     if (mode === 'no-cors') {
       // 1. If this’s request’s method is not a CORS-safelisted method,
       // then throw a TypeError.
-      if (!corsSafeListedMethods.includes(request.method)) {
+      if (!corsSafeListedMethodsSet.has(request.method)) {
         throw new TypeError(
           `'${request.method} is unsupported in no-cors mode.`
         )
@@ -45570,7 +45633,7 @@ const {
   isomorphicEncode
 } = __nccwpck_require__(2538)
 const {
-  redirectStatus,
+  redirectStatusSet,
   nullBodyStatus,
   DOMException
 } = __nccwpck_require__(1037)
@@ -45584,6 +45647,7 @@ const assert = __nccwpck_require__(9491)
 const { types } = __nccwpck_require__(3837)
 
 const ReadableStream = globalThis.ReadableStream || (__nccwpck_require__(5356).ReadableStream)
+const textEncoder = new TextEncoder('utf-8')
 
 // https://fetch.spec.whatwg.org/#response-class
 class Response {
@@ -45613,7 +45677,7 @@ class Response {
     }
 
     // 1. Let bytes the result of running serialize a JavaScript value to JSON bytes on data.
-    const bytes = new TextEncoder('utf-8').encode(
+    const bytes = textEncoder.encode(
       serializeJavascriptValueToJSONString(data)
     )
 
@@ -45658,7 +45722,7 @@ class Response {
     }
 
     // 3. If status is not a redirect status, then throw a RangeError.
-    if (!redirectStatus.includes(status)) {
+    if (!redirectStatusSet.has(status)) {
       throw new RangeError('Invalid status code ' + status)
     }
 
@@ -46156,7 +46220,7 @@ module.exports = {
 "use strict";
 
 
-const { redirectStatus, badPorts, referrerPolicy: referrerPolicyTokens } = __nccwpck_require__(1037)
+const { redirectStatusSet, referrerPolicySet: referrerPolicyTokens, badPortsSet } = __nccwpck_require__(1037)
 const { getGlobalOrigin } = __nccwpck_require__(1246)
 const { performance } = __nccwpck_require__(4074)
 const { isBlobLike, toUSVString, ReadableStreamFrom } = __nccwpck_require__(3983)
@@ -46185,7 +46249,7 @@ function responseURL (response) {
 // https://fetch.spec.whatwg.org/#concept-response-location-url
 function responseLocationURL (response, requestFragment) {
   // 1. If response’s status is not a redirect status, then return null.
-  if (!redirectStatus.includes(response.status)) {
+  if (!redirectStatusSet.has(response.status)) {
     return null
   }
 
@@ -46220,7 +46284,7 @@ function requestBadPort (request) {
 
   // 2. If url’s scheme is an HTTP(S) scheme and url’s port is a bad port,
   // then return blocked.
-  if (urlIsHttpHttpsScheme(url) && badPorts.includes(url.port)) {
+  if (urlIsHttpHttpsScheme(url) && badPortsSet.has(url.port)) {
     return 'blocked'
   }
 
@@ -46362,7 +46426,7 @@ function setRequestReferrerPolicyOnRedirect (request, actualResponse) {
     // The left-most policy is the fallback.
     for (let i = policyHeader.length; i !== 0; i--) {
       const token = policyHeader[i - 1].trim()
-      if (referrerPolicyTokens.includes(token)) {
+      if (referrerPolicyTokens.has(token)) {
         policy = token
         break
       }
@@ -51131,7 +51195,7 @@ class Pool extends PoolBase {
         maxCachedSessions,
         allowH2,
         socketPath,
-        timeout: connectTimeout == null ? 10e3 : connectTimeout,
+        timeout: connectTimeout,
         ...(util.nodeHasAutoSelectFamily && autoSelectFamily ? { autoSelectFamily, autoSelectFamilyAttemptTimeout } : undefined),
         ...connect
       })
@@ -53516,7 +53580,7 @@ function getUserAgent() {
     return navigator.userAgent;
   }
 
-  if (typeof process === "object" && "version" in process) {
+  if (typeof process === "object" && process.version !== undefined) {
     return `Node.js/${process.version.substr(1)} (${process.platform}; ${process.arch})`;
   }
 
