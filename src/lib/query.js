@@ -214,15 +214,20 @@ const queryDependabotAlerts = async (octokit, owner, repo) => {
           }
         }
       });
-    } catch (error) {
-      if (error.status === 403 && error.response && error.response.data.message === 'Dependabot alerts are disabled for this repository.') {
-         // Optionally handle this case specifically, e.g., by setting alerts to a specific value or returning a custom error message
-        console.log("❌ Dependabot alerts are disabled for this repository.");
-      } else {
-        // Handle other errors or a 403 without the specific message
-        console.error("An error occurred:", error);
-      }
+  } catch (error) {
+    if (
+      error.status === 403 &&
+      error.response &&
+      error.response.data.message ===
+        "Dependabot alerts are disabled for this repository."
+    ) {
+      // Optionally handle this case specifically, e.g., by setting alerts to a specific value or returning a custom error message
+      console.log("❌ Dependabot alerts are disabled for this repository.");
+    } else {
+      // Handle other errors or a 403 without the specific message
+      console.error("An error occurred:", error);
     }
+  }
 
   return {
     metadata_owner: owner,
