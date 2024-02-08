@@ -54,6 +54,7 @@ const action = async () => {
     repository,
     prefix + "Repository"
   );
+  
   console.log("✅ Repository data sent to Azure Log Analytics");
 
   // Get branch protection data for main branch
