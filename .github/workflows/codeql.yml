@@ -24,12 +24,12 @@ jobs:
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@5973e2313ac1b9aaedb1f911a1e91228cde07d28 # v2.26.0
+        uses: github/codeql-action/init@e8b34a2aaa1d35eab0b758128337086bb22bc6bf # v2.26.5
         with:
           languages: javascript
           config-file: ./.github/codeql/codeql-config.yml
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@5973e2313ac1b9aaedb1f911a1e91228cde07d28 # v2.26.0
+        uses: github/codeql-action/analyze@e8b34a2aaa1d35eab0b758128337086bb22bc6bf # v2.26.5
         with:
           category: "/language:javascript"
