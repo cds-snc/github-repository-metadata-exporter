@@ -23451,7 +23451,8 @@ var parseValues = function parseQueryStringValues(str, options) {
         var bracketEqualsPos = part.indexOf(']=');
         var pos = bracketEqualsPos === -1 ? part.indexOf('=') : bracketEqualsPos + 1;
 
-        var key, val;
+        var key;
+        var val;
         if (pos === -1) {
             key = options.decoder(part, defaults.decoder, charset, 'key');
             val = options.strictNullHandling ? null : '';
@@ -23466,7 +23467,7 @@ var parseValues = function parseQueryStringValues(str, options) {
         }
 
         if (val && options.interpretNumericEntities && charset === 'iso-8859-1') {
-            val = interpretNumericEntities(val);
+            val = interpretNumericEntities(String(val));
         }
 
         if (part.indexOf('[]=') > -1) {
@@ -23496,7 +23497,7 @@ var parseObject = function (chain, val, options, valuesParsed) {
                 ? []
                 : [].concat(leaf);
         } else {
-            obj = options.plainObjects ? Object.create(null) : {};
+            obj = options.plainObjects ? { __proto__: null } : {};
             var cleanRoot = root.charAt(0) === '[' && root.charAt(root.length - 1) === ']' ? root.slice(1, -1) : root;
             var decodedRoot = options.decodeDotInKeys ? cleanRoot.replace(/%2E/g, '.') : cleanRoot;
             var index = parseInt(decodedRoot, 10);
@@ -23638,11 +23639,11 @@ module.exports = function (str, opts) {
     var options = normalizeParseOptions(opts);
 
     if (str === '' || str === null || typeof str === 'undefined') {
-        return options.plainObjects ? Object.create(null) : {};
+        return options.plainObjects ? { __proto__: null } : {};
     }
 
     var tempObj = typeof str === 'string' ? parseValues(str, options) : str;
-    var obj = options.plainObjects ? Object.create(null) : {};
+    var obj = options.plainObjects ? { __proto__: null } : {};
 
     // Iterate over the keys and setup the new object
 
@@ -23703,11 +23704,13 @@ var defaults = {
     arrayFormat: 'indices',
     charset: 'utf-8',
     charsetSentinel: false,
+    commaRoundTrip: false,
     delimiter: '&',
     encode: true,
     encodeDotInKeys: false,
     encoder: utils.encode,
     encodeValuesOnly: false,
+    filter: void undefined,
     format: defaultFormat,
     formatter: formats.formatters[defaultFormat],
     // deprecated
@@ -23819,7 +23822,7 @@ var stringify = function stringify(
         objKeys = sort ? keys.sort(sort) : keys;
     }
 
-    var encodedPrefix = encodeDotInKeys ? prefix.replace(/\./g, '%2E') : prefix;
+    var encodedPrefix = encodeDotInKeys ? String(prefix).replace(/\./g, '%2E') : String(prefix);
 
     var adjustedPrefix = commaRoundTrip && isArray(obj) && obj.length === 1 ? encodedPrefix + '[]' : encodedPrefix;
 
@@ -23829,13 +23832,15 @@ var stringify = function stringify(
 
     for (var j = 0; j < objKeys.length; ++j) {
         var key = objKeys[j];
-        var value = typeof key === 'object' && typeof key.value !== 'undefined' ? key.value : obj[key];
+        var value = typeof key === 'object' && key && typeof key.value !== 'undefined'
+            ? key.value
+            : obj[key];
 
         if (skipNulls && value === null) {
             continue;
         }
 
-        var encodedKey = allowDots && encodeDotInKeys ? key.replace(/\./g, '%2E') : key;
+        var encodedKey = allowDots && encodeDotInKeys ? String(key).replace(/\./g, '%2E') : String(key);
         var keyPrefix = isArray(obj)
             ? typeof generateArrayPrefix === 'function' ? generateArrayPrefix(adjustedPrefix, encodedKey) : adjustedPrefix
             : adjustedPrefix + (allowDots ? '.' + encodedKey : '[' + encodedKey + ']');
@@ -23926,7 +23931,7 @@ var normalizeStringifyOptions = function normalizeStringifyOptions(opts) {
         arrayFormat: arrayFormat,
         charset: charset,
         charsetSentinel: typeof opts.charsetSentinel === 'boolean' ? opts.charsetSentinel : defaults.charsetSentinel,
-        commaRoundTrip: opts.commaRoundTrip,
+        commaRoundTrip: !!opts.commaRoundTrip,
         delimiter: typeof opts.delimiter === 'undefined' ? defaults.delimiter : opts.delimiter,
         encode: typeof opts.encode === 'boolean' ? opts.encode : defaults.encode,
         encodeDotInKeys: typeof opts.encodeDotInKeys === 'boolean' ? opts.encodeDotInKeys : defaults.encodeDotInKeys,
@@ -23977,12 +23982,13 @@ module.exports = function (object, opts) {
     var sideChannel = getSideChannel();
     for (var i = 0; i < objKeys.length; ++i) {
         var key = objKeys[i];
+        var value = obj[key];
 
-        if (options.skipNulls && obj[key] === null) {
+        if (options.skipNulls && value === null) {
             continue;
         }
         pushToArray(keys, stringify(
-            obj[key],
+            value,
             key,
             generateArrayPrefix,
             commaRoundTrip,
@@ -24062,7 +24068,7 @@ var compactQueue = function compactQueue(queue) {
 };
 
 var arrayToObject = function arrayToObject(source, options) {
-    var obj = options && options.plainObjects ? Object.create(null) : {};
+    var obj = options && options.plainObjects ? { __proto__: null } : {};
     for (var i = 0; i < source.length; ++i) {
         if (typeof source[i] !== 'undefined') {
             obj[i] = source[i];
@@ -24078,11 +24084,14 @@ var merge = function merge(target, source, options) {
         return target;
     }
 
-    if (typeof source !== 'object') {
+    if (typeof source !== 'object' && typeof source !== 'function') {
         if (isArray(target)) {
             target.push(source);
         } else if (target && typeof target === 'object') {
-            if ((options && (options.plainObjects || options.allowPrototypes)) || !has.call(Object.prototype, source)) {
+            if (
+                (options && (options.plainObjects || options.allowPrototypes))
+                || !has.call(Object.prototype, source)
+            ) {
                 target[source] = true;
             }
         } else {
@@ -24136,7 +24145,7 @@ var assign = function assignSingleSource(target, source) {
     }, target);
 };
 
-var decode = function (str, decoder, charset) {
+var decode = function (str, defaultDecoder, charset) {
     var strWithoutPlus = str.replace(/\+/g, ' ');
     if (charset === 'iso-8859-1') {
         // unescape never throws, no try...catch needed:
