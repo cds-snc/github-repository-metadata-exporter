@@ -11047,11 +11047,18 @@ function dezalgo (cb) {
 var callBind = __nccwpck_require__(8705);
 var gOPD = __nccwpck_require__(3170);
 
-// eslint-disable-next-line no-extra-parens, no-proto
-var hasProtoAccessor = /** @type {{ __proto__?: typeof Array.prototype }} */ ([]).__proto__ === Array.prototype;
+var hasProtoAccessor;
+try {
+	// eslint-disable-next-line no-extra-parens, no-proto
+	hasProtoAccessor = /** @type {{ __proto__?: typeof Array.prototype }} */ ([]).__proto__ === Array.prototype;
+} catch (e) {
+	if (!e || typeof e !== 'object' || !('code' in e) || e.code !== 'ERR_PROTO_ACCESS') {
+		throw e;
+	}
+}
 
 // eslint-disable-next-line no-extra-parens
-var desc = hasProtoAccessor && gOPD && gOPD(Object.prototype, /** @type {keyof typeof Object.prototype} */ ('__proto__'));
+var desc = !!hasProtoAccessor && gOPD && gOPD(Object.prototype, /** @type {keyof typeof Object.prototype} */ ('__proto__'));
 
 var $Object = Object;
 var $getPrototypeOf = $Object.getPrototypeOf;
@@ -20343,7 +20350,7 @@ module.exports = Math.abs;
 "use strict";
 
 
-/** @type {import('./abs')} */
+/** @type {import('./floor')} */
 module.exports = Math.floor;
 
 
