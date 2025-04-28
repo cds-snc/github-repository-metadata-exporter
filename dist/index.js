@@ -3411,73 +3411,16 @@ function copyFile(srcFile, destFile, force) {
 
 /***/ }),
 
-/***/ 4894:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-/**
- * Internal assertion helpers.
- * @module
- */
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.anumber = anumber;
-exports.abytes = abytes;
-exports.ahash = ahash;
-exports.aexists = aexists;
-exports.aoutput = aoutput;
-/** Asserts something is positive integer. */
-function anumber(n) {
-    if (!Number.isSafeInteger(n) || n < 0)
-        throw new Error('positive integer expected, got ' + n);
-}
-/** Is number an Uint8Array? Copied from utils for perf. */
-function isBytes(a) {
-    return a instanceof Uint8Array || (ArrayBuffer.isView(a) && a.constructor.name === 'Uint8Array');
-}
-/** Asserts something is Uint8Array. */
-function abytes(b, ...lengths) {
-    if (!isBytes(b))
-        throw new Error('Uint8Array expected');
-    if (lengths.length > 0 && !lengths.includes(b.length))
-        throw new Error('Uint8Array expected of length ' + lengths + ', got length=' + b.length);
-}
-/** Asserts something is hash */
-function ahash(h) {
-    if (typeof h !== 'function' || typeof h.create !== 'function')
-        throw new Error('Hash should be wrapped by utils.wrapConstructor');
-    anumber(h.outputLen);
-    anumber(h.blockLen);
-}
-/** Asserts a hash instance has not been destroyed / finished */
-function aexists(instance, checkFinished = true) {
-    if (instance.destroyed)
-        throw new Error('Hash instance has been destroyed');
-    if (checkFinished && instance.finished)
-        throw new Error('Hash#digest() has already been called');
-}
-/** Asserts output is properly-sized byte array */
-function aoutput(out, instance) {
-    abytes(out);
-    const min = instance.outputLen;
-    if (out.length < min) {
-        throw new Error('digestInto() expects output buffer of length at least ' + min);
-    }
-}
-//# sourceMappingURL=_assert.js.map
-
-/***/ }),
-
 /***/ 1493:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.add5L = exports.add5H = exports.add4H = exports.add4L = exports.add3H = exports.add3L = exports.rotlBL = exports.rotlBH = exports.rotlSL = exports.rotlSH = exports.rotr32L = exports.rotr32H = exports.rotrBL = exports.rotrBH = exports.rotrSL = exports.rotrSH = exports.shrSL = exports.shrSH = exports.toBig = void 0;
+exports.toBig = exports.shrSL = exports.shrSH = exports.rotrSL = exports.rotrSH = exports.rotrBL = exports.rotrBH = exports.rotr32L = exports.rotr32H = exports.rotlSL = exports.rotlSH = exports.rotlBL = exports.rotlBH = exports.add5L = exports.add5H = exports.add4L = exports.add4H = exports.add3L = exports.add3H = void 0;
+exports.add = add;
 exports.fromBig = fromBig;
 exports.split = split;
-exports.add = add;
 /**
  * Internal helpers for u64. BigUint64Array is too slow as per 2025, so we implement it using Uint32Array.
  * @todo re-check https://issues.chromium.org/issues/42212588
@@ -3491,9 +3434,10 @@ function fromBig(n, le = false) {
     return { h: Number((n >> _32n) & U32_MASK64) | 0, l: Number(n & U32_MASK64) | 0 };
 }
 function split(lst, le = false) {
-    let Ah = new Uint32Array(lst.length);
-    let Al = new Uint32Array(lst.length);
-    for (let i = 0; i < lst.length; i++) {
+    const len = lst.length;
+    let Ah = new Uint32Array(len);
+    let Al = new Uint32Array(len);
+    for (let i = 0; i < len; i++) {
         const { h, l } = fromBig(lst[i], le);
         [Ah[i], Al[i]] = [h, l];
     }
@@ -3608,19 +3552,21 @@ exports.keccakP = keccakP;
  * Check out `sha3-addons` module for cSHAKE, k12, and others.
  * @module
  */
-const _assert_ts_1 = __nccwpck_require__(4894);
 const _u64_ts_1 = __nccwpck_require__(1493);
+// prettier-ignore
 const utils_ts_1 = __nccwpck_require__(4248);
+// No __PURE__ annotations in sha3 header:
+// EVERYTHING is in fact used on every export.
 // Various per round constants calculations
+const _0n = BigInt(0);
+const _1n = BigInt(1);
+const _2n = BigInt(2);
+const _7n = BigInt(7);
+const _256n = BigInt(256);
+const _0x71n = BigInt(0x71);
 const SHA3_PI = [];
 const SHA3_ROTL = [];
 const _SHA3_IOTA = [];
-const _0n = /* @__PURE__ */ BigInt(0);
-const _1n = /* @__PURE__ */ BigInt(1);
-const _2n = /* @__PURE__ */ BigInt(2);
-const _7n = /* @__PURE__ */ BigInt(7);
-const _256n = /* @__PURE__ */ BigInt(256);
-const _0x71n = /* @__PURE__ */ BigInt(0x71);
 for (let round = 0, R = _1n, x = 1, y = 0; round < 24; round++) {
     // Pi
     [x, y] = [y, (2 * x + 3 * y) % 5];
@@ -3636,7 +3582,9 @@ for (let round = 0, R = _1n, x = 1, y = 0; round < 24; round++) {
     }
     _SHA3_IOTA.push(t);
 }
-const [SHA3_IOTA_H, SHA3_IOTA_L] = /* @__PURE__ */ (0, _u64_ts_1.split)(_SHA3_IOTA, true);
+const IOTAS = (0, _u64_ts_1.split)(_SHA3_IOTA, true);
+const SHA3_IOTA_H = IOTAS[0];
+const SHA3_IOTA_L = IOTAS[1];
 // Left rotation (without 0, 32, 64)
 const rotlH = (h, l, s) => (s > 32 ? (0, _u64_ts_1.rotlBH)(h, l, s) : (0, _u64_ts_1.rotlSH)(h, l, s));
 const rotlL = (h, l, s) => (s > 32 ? (0, _u64_ts_1.rotlBL)(h, l, s) : (0, _u64_ts_1.rotlSL)(h, l, s));
@@ -3684,7 +3632,7 @@ function keccakP(s, rounds = 24) {
         s[0] ^= SHA3_IOTA_H[round];
         s[1] ^= SHA3_IOTA_L[round];
     }
-    B.fill(0);
+    (0, utils_ts_1.clean)(B);
 }
 /** Keccak sponge function. */
 class Keccak extends utils_ts_1.Hash {
@@ -3702,27 +3650,29 @@ class Keccak extends utils_ts_1.Hash {
         this.enableXOF = enableXOF;
         this.rounds = rounds;
         // Can be passed from user as dkLen
-        (0, _assert_ts_1.anumber)(outputLen);
+        (0, utils_ts_1.anumber)(outputLen);
         // 1600 = 5x5 matrix of 64bit.  1600 bits === 200 bytes
         // 0 < blockLen < 200
-        if (0 >= this.blockLen || this.blockLen >= 200)
-            throw new Error('Sha3 supports only keccak-f1600 function');
+        if (!(0 < blockLen && blockLen < 200))
+            throw new Error('only keccak-f1600 function is supported');
         this.state = new Uint8Array(200);
         this.state32 = (0, utils_ts_1.u32)(this.state);
     }
+    clone() {
+        return this._cloneInto();
+    }
     keccak() {
-        if (!utils_ts_1.isLE)
-            (0, utils_ts_1.byteSwap32)(this.state32);
+        (0, utils_ts_1.swap32IfBE)(this.state32);
         keccakP(this.state32, this.rounds);
-        if (!utils_ts_1.isLE)
-            (0, utils_ts_1.byteSwap32)(this.state32);
+        (0, utils_ts_1.swap32IfBE)(this.state32);
         this.posOut = 0;
         this.pos = 0;
     }
     update(data) {
-        (0, _assert_ts_1.aexists)(this);
-        const { blockLen, state } = this;
+        (0, utils_ts_1.aexists)(this);
         data = (0, utils_ts_1.toBytes)(data);
+        (0, utils_ts_1.abytes)(data);
+        const { blockLen, state } = this;
         const len = data.length;
         for (let pos = 0; pos < len;) {
             const take = Math.min(blockLen - this.pos, len - pos);
@@ -3746,8 +3696,8 @@ class Keccak extends utils_ts_1.Hash {
         this.keccak();
     }
     writeInto(out) {
-        (0, _assert_ts_1.aexists)(this, false);
-        (0, _assert_ts_1.abytes)(out);
+        (0, utils_ts_1.aexists)(this, false);
+        (0, utils_ts_1.abytes)(out);
         this.finish();
         const bufferOut = this.state;
         const { blockLen } = this;
@@ -3768,11 +3718,11 @@ class Keccak extends utils_ts_1.Hash {
         return this.writeInto(out);
     }
     xof(bytes) {
-        (0, _assert_ts_1.anumber)(bytes);
+        (0, utils_ts_1.anumber)(bytes);
         return this.xofInto(new Uint8Array(bytes));
     }
     digestInto(out) {
-        (0, _assert_ts_1.aoutput)(out, this);
+        (0, utils_ts_1.aoutput)(out, this);
         if (this.finished)
             throw new Error('digest() was already called');
         this.writeInto(out);
@@ -3784,7 +3734,7 @@ class Keccak extends utils_ts_1.Hash {
     }
     destroy() {
         this.destroyed = true;
-        this.state.fill(0);
+        (0, utils_ts_1.clean)(this.state);
     }
     _cloneInto(to) {
         const { blockLen, suffix, outputLen, rounds, enableXOF } = this;
@@ -3803,28 +3753,28 @@ class Keccak extends utils_ts_1.Hash {
     }
 }
 exports.Keccak = Keccak;
-const gen = (suffix, blockLen, outputLen) => (0, utils_ts_1.wrapConstructor)(() => new Keccak(blockLen, suffix, outputLen));
+const gen = (suffix, blockLen, outputLen) => (0, utils_ts_1.createHasher)(() => new Keccak(blockLen, suffix, outputLen));
 /** SHA3-224 hash function. */
-exports.sha3_224 = gen(0x06, 144, 224 / 8);
+exports.sha3_224 = (() => gen(0x06, 144, 224 / 8))();
 /** SHA3-256 hash function. Different from keccak-256. */
-exports.sha3_256 = gen(0x06, 136, 256 / 8);
+exports.sha3_256 = (() => gen(0x06, 136, 256 / 8))();
 /** SHA3-384 hash function. */
-exports.sha3_384 = gen(0x06, 104, 384 / 8);
+exports.sha3_384 = (() => gen(0x06, 104, 384 / 8))();
 /** SHA3-512 hash function. */
-exports.sha3_512 = gen(0x06, 72, 512 / 8);
+exports.sha3_512 = (() => gen(0x06, 72, 512 / 8))();
 /** keccak-224 hash function. */
-exports.keccak_224 = gen(0x01, 144, 224 / 8);
+exports.keccak_224 = (() => gen(0x01, 144, 224 / 8))();
 /** keccak-256 hash function. Different from SHA3-256. */
-exports.keccak_256 = gen(0x01, 136, 256 / 8);
+exports.keccak_256 = (() => gen(0x01, 136, 256 / 8))();
 /** keccak-384 hash function. */
-exports.keccak_384 = gen(0x01, 104, 384 / 8);
+exports.keccak_384 = (() => gen(0x01, 104, 384 / 8))();
 /** keccak-512 hash function. */
-exports.keccak_512 = gen(0x01, 72, 512 / 8);
-const genShake = (suffix, blockLen, outputLen) => (0, utils_ts_1.wrapXOFConstructorWithOpts)((opts = {}) => new Keccak(blockLen, suffix, opts.dkLen === undefined ? outputLen : opts.dkLen, true));
+exports.keccak_512 = (() => gen(0x01, 72, 512 / 8))();
+const genShake = (suffix, blockLen, outputLen) => (0, utils_ts_1.createXOFer)((opts = {}) => new Keccak(blockLen, suffix, opts.dkLen === undefined ? outputLen : opts.dkLen, true));
 /** SHAKE128 XOF with 128-bit security. */
-exports.shake128 = genShake(0x1f, 168, 128 / 8);
+exports.shake128 = (() => genShake(0x1f, 168, 128 / 8))();
 /** SHAKE256 XOF with 256-bit security. */
-exports.shake256 = genShake(0x1f, 136, 256 / 8);
+exports.shake256 = (() => genShake(0x1f, 136, 256 / 8))();
 //# sourceMappingURL=sha3.js.map
 
 /***/ }),
@@ -3840,10 +3790,16 @@ exports.shake256 = genShake(0x1f, 136, 256 / 8);
  */
 /*! noble-hashes - MIT License (c) 2022 Paul Miller (paulmillr.com) */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Hash = exports.nextTick = exports.byteSwapIfBE = exports.isLE = void 0;
+exports.wrapXOFConstructorWithOpts = exports.wrapConstructorWithOpts = exports.wrapConstructor = exports.Hash = exports.nextTick = exports.swap32IfBE = exports.byteSwapIfBE = exports.swap8IfBE = exports.isLE = void 0;
 exports.isBytes = isBytes;
+exports.anumber = anumber;
+exports.abytes = abytes;
+exports.ahash = ahash;
+exports.aexists = aexists;
+exports.aoutput = aoutput;
 exports.u8 = u8;
 exports.u32 = u32;
+exports.clean = clean;
 exports.createView = createView;
 exports.rotr = rotr;
 exports.rotl = rotl;
@@ -3853,12 +3809,14 @@ exports.bytesToHex = bytesToHex;
 exports.hexToBytes = hexToBytes;
 exports.asyncLoop = asyncLoop;
 exports.utf8ToBytes = utf8ToBytes;
+exports.bytesToUtf8 = bytesToUtf8;
 exports.toBytes = toBytes;
+exports.kdfInputToBytes = kdfInputToBytes;
 exports.concatBytes = concatBytes;
 exports.checkOpts = checkOpts;
-exports.wrapConstructor = wrapConstructor;
-exports.wrapConstructorWithOpts = wrapConstructorWithOpts;
-exports.wrapXOFConstructorWithOpts = wrapXOFConstructorWithOpts;
+exports.createHasher = createHasher;
+exports.createOptHasher = createOptHasher;
+exports.createXOFer = createXOFer;
 exports.randomBytes = randomBytes;
 // We use WebCrypto aka globalThis.crypto, which exists in browsers and node.js 16+.
 // node.js versions earlier than v19 don't declare it in global scope.
@@ -3867,20 +3825,59 @@ exports.randomBytes = randomBytes;
 // Makes the utils un-importable in browsers without a bundler.
 // Once node.js 18 is deprecated (2025-04-30), we can just drop the import.
 const crypto_1 = __nccwpck_require__(5048);
-const _assert_ts_1 = __nccwpck_require__(4894);
-// export { isBytes } from './_assert.ts';
-// We can't reuse isBytes from _assert, because somehow this causes huge perf issues
+/** Checks if something is Uint8Array. Be careful: nodejs Buffer will return true. */
 function isBytes(a) {
     return a instanceof Uint8Array || (ArrayBuffer.isView(a) && a.constructor.name === 'Uint8Array');
 }
-// Cast array to different type
+/** Asserts something is positive integer. */
+function anumber(n) {
+    if (!Number.isSafeInteger(n) || n < 0)
+        throw new Error('positive integer expected, got ' + n);
+}
+/** Asserts something is Uint8Array. */
+function abytes(b, ...lengths) {
+    if (!isBytes(b))
+        throw new Error('Uint8Array expected');
+    if (lengths.length > 0 && !lengths.includes(b.length))
+        throw new Error('Uint8Array expected of length ' + lengths + ', got length=' + b.length);
+}
+/** Asserts something is hash */
+function ahash(h) {
+    if (typeof h !== 'function' || typeof h.create !== 'function')
+        throw new Error('Hash should be wrapped by utils.createHasher');
+    anumber(h.outputLen);
+    anumber(h.blockLen);
+}
+/** Asserts a hash instance has not been destroyed / finished */
+function aexists(instance, checkFinished = true) {
+    if (instance.destroyed)
+        throw new Error('Hash instance has been destroyed');
+    if (checkFinished && instance.finished)
+        throw new Error('Hash#digest() has already been called');
+}
+/** Asserts output is properly-sized byte array */
+function aoutput(out, instance) {
+    abytes(out);
+    const min = instance.outputLen;
+    if (out.length < min) {
+        throw new Error('digestInto() expects output buffer of length at least ' + min);
+    }
+}
+/** Cast u8 / u16 / u32 to u8. */
 function u8(arr) {
     return new Uint8Array(arr.buffer, arr.byteOffset, arr.byteLength);
 }
+/** Cast u8 / u16 / u32 to u32. */
 function u32(arr) {
     return new Uint32Array(arr.buffer, arr.byteOffset, Math.floor(arr.byteLength / 4));
 }
-// Cast array to view
+/** Zeroize a byte array. Warning: JS provides no guarantees. */
+function clean(...arrays) {
+    for (let i = 0; i < arrays.length; i++) {
+        arrays[i].fill(0);
+    }
+}
+/** Create DataView of an array for easy byte-level manipulation. */
 function createView(arr) {
     return new DataView(arr.buffer, arr.byteOffset, arr.byteLength);
 }
@@ -3894,7 +3891,7 @@ function rotl(word, shift) {
 }
 /** Is current platform little-endian? Most are. Big-Endian platform: IBM */
 exports.isLE = (() => new Uint8Array(new Uint32Array([0x11223344]).buffer)[0] === 0x44)();
-// The byte swap operation for uint32
+/** The byte swap operation for uint32 */
 function byteSwap(word) {
     return (((word << 24) & 0xff000000) |
         ((word << 8) & 0xff0000) |
@@ -3902,19 +3899,25 @@ function byteSwap(word) {
         ((word >>> 24) & 0xff));
 }
 /** Conditionally byte swap if on a big-endian platform */
-exports.byteSwapIfBE = exports.isLE
+exports.swap8IfBE = exports.isLE
     ? (n) => n
     : (n) => byteSwap(n);
+/** @deprecated */
+exports.byteSwapIfBE = exports.swap8IfBE;
 /** In place byte swap for Uint32Array */
 function byteSwap32(arr) {
     for (let i = 0; i < arr.length; i++) {
         arr[i] = byteSwap(arr[i]);
     }
+    return arr;
 }
+exports.swap32IfBE = exports.isLE
+    ? (u) => u
+    : byteSwap32;
 // Built-in hex conversion https://caniuse.com/mdn-javascript_builtins_uint8array_fromhex
-const hasHexBuiltin = 
+const hasHexBuiltin = /* @__PURE__ */ (() => 
 // @ts-ignore
-typeof Uint8Array.from([]).toHex === 'function' && typeof Uint8Array.fromHex === 'function';
+typeof Uint8Array.from([]).toHex === 'function' && typeof Uint8Array.fromHex === 'function')();
 // Array where index 0xf0 (240) is mapped to string 'f0'
 const hexes = /* @__PURE__ */ Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, '0'));
 /**
@@ -3922,7 +3925,7 @@ const hexes = /* @__PURE__ */ Array.from({ length: 256 }, (_, i) => i.toString(1
  * @example bytesToHex(Uint8Array.from([0xca, 0xfe, 0x01, 0x23])) // 'cafe0123'
  */
 function bytesToHex(bytes) {
-    (0, _assert_ts_1.abytes)(bytes);
+    abytes(bytes);
     // @ts-ignore
     if (hasHexBuiltin)
         return bytes.toHex();
@@ -3991,13 +3994,20 @@ async function asyncLoop(iters, tick, cb) {
     }
 }
 /**
- * Convert JS string to byte array.
- * @example utf8ToBytes('abc') // new Uint8Array([97, 98, 99])
+ * Converts string to bytes using UTF8 encoding.
+ * @example utf8ToBytes('abc') // Uint8Array.from([97, 98, 99])
  */
 function utf8ToBytes(str) {
     if (typeof str !== 'string')
-        throw new Error('utf8ToBytes expected string, got ' + typeof str);
+        throw new Error('string expected');
     return new Uint8Array(new TextEncoder().encode(str)); // https://bugzil.la/1681809
+}
+/**
+ * Converts bytes to string using UTF8 encoding.
+ * @example bytesToUtf8(Uint8Array.from([97, 98, 99])) // 'abc'
+ */
+function bytesToUtf8(bytes) {
+    return new TextDecoder().decode(bytes);
 }
 /**
  * Normalizes (non-hex) string or Uint8Array to Uint8Array.
@@ -4007,17 +4017,25 @@ function utf8ToBytes(str) {
 function toBytes(data) {
     if (typeof data === 'string')
         data = utf8ToBytes(data);
-    (0, _assert_ts_1.abytes)(data);
+    abytes(data);
     return data;
 }
 /**
- * Copies several Uint8Arrays into one.
+ * Helper for KDFs: consumes uint8array or string.
+ * When string is passed, does utf8 decoding, using TextDecoder.
  */
+function kdfInputToBytes(data) {
+    if (typeof data === 'string')
+        data = utf8ToBytes(data);
+    abytes(data);
+    return data;
+}
+/** Copies several Uint8Arrays into one. */
 function concatBytes(...arrays) {
     let sum = 0;
     for (let i = 0; i < arrays.length; i++) {
         const a = arrays[i];
-        (0, _assert_ts_1.abytes)(a);
+        abytes(a);
         sum += a.length;
     }
     const res = new Uint8Array(sum);
@@ -4028,22 +4046,18 @@ function concatBytes(...arrays) {
     }
     return res;
 }
-/** For runtime check if class implements interface */
-class Hash {
-    // Safe version that clones internal state
-    clone() {
-        return this._cloneInto();
-    }
-}
-exports.Hash = Hash;
 function checkOpts(defaults, opts) {
     if (opts !== undefined && {}.toString.call(opts) !== '[object Object]')
-        throw new Error('Options should be object or undefined');
+        throw new Error('options should be object or undefined');
     const merged = Object.assign(defaults, opts);
     return merged;
 }
+/** For runtime check if class implements interface */
+class Hash {
+}
+exports.Hash = Hash;
 /** Wraps hash function, creating an interface on top of it */
-function wrapConstructor(hashCons) {
+function createHasher(hashCons) {
     const hashC = (msg) => hashCons().update(toBytes(msg)).digest();
     const tmp = hashCons();
     hashC.outputLen = tmp.outputLen;
@@ -4051,7 +4065,7 @@ function wrapConstructor(hashCons) {
     hashC.create = () => hashCons();
     return hashC;
 }
-function wrapConstructorWithOpts(hashCons) {
+function createOptHasher(hashCons) {
     const hashC = (msg, opts) => hashCons(opts).update(toBytes(msg)).digest();
     const tmp = hashCons({});
     hashC.outputLen = tmp.outputLen;
@@ -4059,7 +4073,7 @@ function wrapConstructorWithOpts(hashCons) {
     hashC.create = (opts) => hashCons(opts);
     return hashC;
 }
-function wrapXOFConstructorWithOpts(hashCons) {
+function createXOFer(hashCons) {
     const hashC = (msg, opts) => hashCons(opts).update(toBytes(msg)).digest();
     const tmp = hashCons({});
     hashC.outputLen = tmp.outputLen;
@@ -4067,6 +4081,9 @@ function wrapXOFConstructorWithOpts(hashCons) {
     hashC.create = (opts) => hashCons(opts);
     return hashC;
 }
+exports.wrapConstructor = createHasher;
+exports.wrapConstructorWithOpts = createOptHasher;
+exports.wrapXOFConstructorWithOpts = createXOFer;
 /** Cryptographically secure PRNG. Uses internal OS-level `crypto.getRandomValues`. */
 function randomBytes(bytesLength = 32) {
     if (crypto_1.crypto && typeof crypto_1.crypto.getRandomValues === 'function') {
@@ -13071,7 +13088,7 @@ const qs = __nccwpck_require__(240);
 
 const CUID2_FINGERPRINT = `${
   process.env.NODE_ENV
-}-${os.platform()}-${os.hostname()}-${os.machine()}`;
+}-${os.platform()}-${os.hostname()}`;
 const createId = cuid2.init({
   length: 25,
   fingerprint: CUID2_FINGERPRINT.toLowerCase(),
