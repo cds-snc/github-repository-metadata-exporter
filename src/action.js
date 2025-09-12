@@ -32,7 +32,7 @@ const action = async () => {
   const orgDataRepo = core.getInput("org-data-repo");
 
   // S3 config from secrets
-  const s3Bucket = "cds-data-lake-raw-production/github";
+  const s3Bucket = "cds-data-lake-raw-production/operations/github";
   const awsRegion = "ca-central-1";
 
   const auth = createAppAuth({
