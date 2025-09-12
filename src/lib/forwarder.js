@@ -33,47 +33,42 @@ const buildSignature = (
   return authorization;
 };
 
-// const postData = async (customerId, sharedKey, body, logType) => {
-//   body = jsonEscapeUTF(JSON.stringify(body));
-//   let method = "POST";
-//   let contentType = "application/json";
-//   let resource = "/api/logs";
-//   let rfc1123date = new Date().toUTCString();
-//   let contentLength = body.length;
-//
-//   let signature = buildSignature(
-//     customerId,
-//     sharedKey,
-//     rfc1123date,
-//     contentLength,
-//     method,
-//     contentType,
-//     resource
-//   );
-//
-//   let url = `https://${customerId}.ods.opinsights.azure.com${resource}?api-version=2016-04-01`;
-//   let headers = {
-//     "content-type": contentType,
-//     Authorization: signature,
-//     "Log-Type": logType,
-//     "x-ms-date": rfc1123date,
-//   };
-//
-//   try {
-//     let response = await superagent.post(url).set(headers).send(body);
-//     if (response.status !== 200) {
-//       throw response;
-//     }
-//   } catch (error) {
-//     throw new Error(
-//       `Error posting data to Azure Log Analytics: ${error.status}`
-//     );
-//   }
-//   return true;
-// };
+const postData = async (customerId, sharedKey, body, logType) => {
+  body = jsonEscapeUTF(JSON.stringify(body));
+  let method = "POST";
+  let contentType = "application/json";
+  let resource = "/api/logs";
+  let rfc1123date = new Date().toUTCString();
+  let contentLength = body.length;
 
-// Mock for testing: always returns true
-const postData = async () => {
+  let signature = buildSignature(
+    customerId,
+    sharedKey,
+    rfc1123date,
+    contentLength,
+    method,
+    contentType,
+    resource
+  );
+
+  let url = `https://${customerId}.ods.opinsights.azure.com${resource}?api-version=2016-04-01`;
+  let headers = {
+    "content-type": contentType,
+    Authorization: signature,
+    "Log-Type": logType,
+    "x-ms-date": rfc1123date,
+  };
+
+  try {
+    let response = await superagent.post(url).set(headers).send(body);
+    if (response.status !== 200) {
+      throw response;
+    }
+  } catch (error) {
+    throw new Error(
+      `Error posting data to Azure Log Analytics: ${error.status}`
+    );
+  }
   return true;
 };
 
