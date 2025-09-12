@@ -52,7 +52,7 @@ const action = async () => {
 
   // Helper to send to S3
   async function sendToS3(data, type) {
-  const key = `${type}/${owner}-${repo}-${new Date().toISOString()}.json`;
+    const key = `${type}/${owner}-${repo}-${new Date().toISOString()}.json`;
     await uploadToS3(s3Bucket, key, data, awsRegion);
     console.log(`✅ Data sent to S3: ${key}`);
   }
@@ -144,7 +144,10 @@ const action = async () => {
       { ...codeScanningAlertsData, ...data },
       prefix + "CodeScanningAlerts"
     );
-    await sendToS3({ ...codeScanningAlertsData, ...data }, "CodeScanningAlerts");
+    await sendToS3(
+      { ...codeScanningAlertsData, ...data },
+      "CodeScanningAlerts"
+    );
     console.log(
       `⏱️ ${chunk.length} code scanning alerts sent to Azure Log Analytics and S3.`
     );
@@ -170,7 +173,9 @@ const action = async () => {
       prefix + "RenovatePRs"
     );
     await sendToS3({ ...renovatePRsData, ...data }, "RenovatePRs");
-    console.log(`⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics and S3.`);
+    console.log(
+      `⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics and S3.`
+    );
   }
   console.log("✅ RenovatePRs data sent to Azure Log Analytics and S3");
 
@@ -208,7 +213,9 @@ const action = async () => {
         prefix + "Users"
       );
       await sendToS3({ ...usersData, ...data }, "Users");
-      console.log(`⏱️ ${chunk.length} users sent to Azure Log Analytics and S3.`);
+      console.log(
+        `⏱️ ${chunk.length} users sent to Azure Log Analytics and S3.`
+      );
     }
     console.log("✅ Users data sent to Azure Log Analytics and S3");
 
@@ -231,7 +238,9 @@ const action = async () => {
         prefix + "Codespaces"
       );
       await sendToS3({ ...codespacesData, ...data }, "Codespaces");
-      console.log(`⏱️ ${chunk.length} codespaces sent to Azure Log Analytics and S3.`);
+      console.log(
+        `⏱️ ${chunk.length} codespaces sent to Azure Log Analytics and S3.`
+      );
     }
     console.log("✅ Codespaces data sent to Azure Log Analytics and S3");
   }
