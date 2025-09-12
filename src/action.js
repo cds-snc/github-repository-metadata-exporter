@@ -4,7 +4,7 @@ const core = require("@actions/core");
 const github = require("@actions/github");
 const { createAppAuth } = require("@octokit/auth-app");
 
-const { postData } = require("./lib/forwarder.js");
+const { postData, uploadToS3 } = require("./lib/forwarder.js");
 const {
   queryActionDependencies,
   queryBranchProtection,
@@ -31,6 +31,10 @@ const action = async () => {
 
   const orgDataRepo = core.getInput("org-data-repo");
 
+  // S3 config from secrets
+  const s3Bucket = "cds-data-lake-raw-production/github";
+  const awsRegion = "ca-central-1";
+
   const auth = createAppAuth({
     appId: githubAppId,
     privateKey: githubAppPrivateKey,
@@ -46,6 +50,13 @@ const action = async () => {
   const owner = github.context.repo.owner;
   const repo = github.context.repo.repo;
 
+  // Helper to send to S3
+  async function sendToS3(data, type) {
+  const key = `${type}/${owner}-${repo}-${new Date().toISOString()}.json`;
+    await uploadToS3(s3Bucket, key, data, awsRegion);
+    console.log(`✅ Data sent to S3: ${key}`);
+  }
+
   // Get repository data
   const repository = await queryRepository(octokit, owner, repo);
   await postData(
@@ -54,8 +65,8 @@ const action = async () => {
     repository,
     prefix + "Repository"
   );
-
-  console.log("✅ Repository data sent to Azure Log Analytics");
+  await sendToS3(repository, "Repository");
+  console.log("✅ Repository data sent to Azure Log Analytics and S3");
 
   // Get branch protection data for main branch
   const branchProtectionData = await queryBranchProtection(
@@ -70,7 +81,8 @@ const action = async () => {
     branchProtectionData,
     prefix + "BranchProtection"
   );
-  console.log("✅ BranchProtection data sent to Azure Log Analytics");
+  await sendToS3(branchProtectionData, "BranchProtection");
+  console.log("✅ BranchProtection data sent to Azure Log Analytics and S3");
 
   // Get branch protection data for main branch
   const commitCountData = await queryCommitCount(octokit, owner, repo);
@@ -80,7 +92,8 @@ const action = async () => {
     commitCountData,
     prefix + "CommitCount"
   );
-  console.log("✅ CommitCount data sent to Azure Log Analytics");
+  await sendToS3(commitCountData, "CommitCount");
+  console.log("✅ CommitCount data sent to Azure Log Analytics and S3");
 
   // Get required files data for current branch
   const requiredFilesData = await queryRequiredFiles(owner, repo);
@@ -90,7 +103,8 @@ const action = async () => {
     requiredFilesData,
     prefix + "RequiredFiles"
   );
-  console.log("✅ RequiredFiles data sent to Azure Log Analytics");
+  await sendToS3(requiredFilesData, "RequiredFiles");
+  console.log("✅ RequiredFiles data sent to Azure Log Analytics and S3");
 
   // Get dependabot alerts data for current branch
   const dependabotAlertsData = await queryDependabotAlerts(
@@ -104,7 +118,8 @@ const action = async () => {
     dependabotAlertsData,
     prefix + "DependabotAlerts"
   );
-  console.log("✅ DependabotAlerts data sent to Azure Log Analytics");
+  await sendToS3(dependabotAlertsData, "DependabotAlerts");
+  console.log("✅ DependabotAlerts data sent to Azure Log Analytics and S3");
 
   // Get code scanning alerts data for current branch
   const codeScanningAlertsData = await queryCodeScanningAlerts(
@@ -129,11 +144,12 @@ const action = async () => {
       { ...codeScanningAlertsData, ...data },
       prefix + "CodeScanningAlerts"
     );
+    await sendToS3({ ...codeScanningAlertsData, ...data }, "CodeScanningAlerts");
     console.log(
-      `⏱️ ${chunk.length} code scanning alerts sent to Azure Log Analytics.`
+      `⏱️ ${chunk.length} code scanning alerts sent to Azure Log Analytics and S3.`
     );
   }
-  console.log("✅ CodeScanningAlerts data sent to Azure Log Analytics");
+  console.log("✅ CodeScanningAlerts data sent to Azure Log Analytics and S3");
 
   // Get Renovate PRs data for current repo
   const renovatePRsData = await queryRenovatePRs(octokit, owner, repo);
@@ -153,9 +169,10 @@ const action = async () => {
       { ...renovatePRsData, ...data },
       prefix + "RenovatePRs"
     );
-    console.log(`⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics.`);
+    await sendToS3({ ...renovatePRsData, ...data }, "RenovatePRs");
+    console.log(`⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics and S3.`);
   }
-  console.log("✅ RenovatePRs data sent to Azure Log Analytics");
+  console.log("✅ RenovatePRs data sent to Azure Log Analytics and S3");
 
   // Get required files data for current branch
   const actionDependenciesData = await queryActionDependencies(owner, repo);
@@ -165,7 +182,8 @@ const action = async () => {
     actionDependenciesData,
     prefix + "ActionDependencies"
   );
-  console.log("✅ ActionDependencies data sent to Azure Log Analytics");
+  await sendToS3(actionDependenciesData, "ActionDependencies");
+  console.log("✅ ActionDependencies data sent to Azure Log Analytics and S3");
 
   // Get central repository data if current repo is org data repo
   if (orgDataRepo == `${owner}/${repo}`) {
@@ -189,9 +207,10 @@ const action = async () => {
         { ...usersData, ...data },
         prefix + "Users"
       );
-      console.log(`⏱️ ${chunk.length} users sent to Azure Log Analytics.`);
+      await sendToS3({ ...usersData, ...data }, "Users");
+      console.log(`⏱️ ${chunk.length} users sent to Azure Log Analytics and S3.`);
     }
-    console.log("✅ Users data sent to Azure Log Analytics");
+    console.log("✅ Users data sent to Azure Log Analytics and S3");
 
     // Get codespaces data from org
     console.log("🖥️ Getting codespaces data");
@@ -211,9 +230,10 @@ const action = async () => {
         { ...codespacesData, ...data },
         prefix + "Codespaces"
       );
-      console.log(`⏱️ ${chunk.length} codespaces sent to Azure Log Analytics.`);
+      await sendToS3({ ...codespacesData, ...data }, "Codespaces");
+      console.log(`⏱️ ${chunk.length} codespaces sent to Azure Log Analytics and S3.`);
     }
-    console.log("✅ Codespaces data sent to Azure Log Analytics");
+    console.log("✅ Codespaces data sent to Azure Log Analytics and S3");
   }
 };
 

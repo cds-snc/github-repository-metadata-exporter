@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const superagent = require("superagent");
+const AWS = require("aws-sdk");
 
 const buildSignature = (
   customerId,
@@ -81,4 +82,19 @@ function jsonEscapeUTF(s) {
 module.exports = {
   jsonEscapeUTF: jsonEscapeUTF,
   postData: postData,
+  uploadToS3: async function uploadToS3(bucket, key, data, awsRegion = "ca-central-1") {
+    const s3 = new AWS.S3({ region: awsRegion });
+    const params = {
+      Bucket: bucket,
+      Key: key,
+      Body: JSON.stringify(data, null, 2),
+      ContentType: "application/json",
+    };
+    try {
+      await s3.putObject(params).promise();
+      return true;
+    } catch (err) {
+      throw new Error(`Error uploading data to S3: ${err.message}`);
+    }
+  },
 };

@@ -37,6 +37,7 @@
     "@actions/core": "^1.11.1",
     "@actions/github": "^5.1.1",
     "@octokit/auth-app": "^4.0.7",
+    "aws-sdk": "^2.1692.0",
     "superagent": "^8.0.5"
   },
   "overrides": {
