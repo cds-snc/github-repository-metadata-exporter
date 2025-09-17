@@ -69,9 +69,9 @@ const action = async () => {
   console.log("✅ Repository data sent to Azure Log Analytics");
 
   // Get all PRs modified today and write to S3 only
-  const allPRsToday = await queryAllPRs(octokit, owner, repo);
-  await sendToS3(allPRsToday, "AllPRsToday");
-  console.log("✅ AllPRsToday data sent to S3");
+  const allPRs = await queryAllPRs(octokit, owner, repo);
+  await sendToS3(allPRs, "AllPRs");
+  console.log("✅ AllPRs data sent to S3");
 
   // Get branch protection data for main branch
   const branchProtectionData = await queryBranchProtection(
