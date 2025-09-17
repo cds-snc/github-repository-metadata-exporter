@@ -308,6 +308,35 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
   };
 };
 
+const queryAllPRs = async (octokit, owner, repo) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const q = `repo:${owner}/${repo} is:pr updated:${today}`;
+  let prs = [];
+  await octokit
+    .paginate(octokit.rest.search.issuesAndPullRequests, { q })
+    .then((listedPRs) => {
+      for (const pr of listedPRs) {
+        prs.push({
+          id: pr.id,
+          number: pr.number,
+          title: pr.title,
+          state: pr.state,
+          created_at: pr.created_at,
+          updated_at: pr.updated_at,
+          closed_at: pr.closed_at,
+          html_url: pr.pull_request.html_url,
+          labels: Array.isArray(pr.labels) ? pr.labels.map((l) => l.name) : [],
+        });
+      }
+    });
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "all_prs",
+    prs: prs,
+  };
+};
+
 const queryUsers = async (octokit, owner) => {
   let users = [];
   await octokit
@@ -342,5 +371,6 @@ module.exports = {
   queryRepository: queryRepository,
   queryRequiredFiles: queryRequiredFiles,
   queryRenovatePRs: queryRenovatePRs,
+  queryAllPRs: queryAllPRs,
   queryUsers: queryUsers,
 };

@@ -7,6 +7,7 @@ const { createAppAuth } = require("@octokit/auth-app");
 const { postData, uploadToS3 } = require("./lib/forwarder.js");
 const {
   queryActionDependencies,
+  queryAllPRs,
   queryBranchProtection,
   queryCodeScanningAlerts,
   queryCodespaces,
@@ -65,8 +66,12 @@ const action = async () => {
     repository,
     prefix + "Repository"
   );
-  await sendToS3(repository, "Repository");
-  console.log("✅ Repository data sent to Azure Log Analytics and S3");
+  console.log("✅ Repository data sent to Azure Log Analytics");
+
+  // Get all PRs modified today and write to S3 only
+  const allPRsToday = await queryAllPRs(octokit, owner, repo);
+  await sendToS3(allPRsToday, "AllPRsToday");
+  console.log("✅ AllPRsToday data sent to S3");
 
   // Get branch protection data for main branch
   const branchProtectionData = await queryBranchProtection(
@@ -81,10 +86,9 @@ const action = async () => {
     branchProtectionData,
     prefix + "BranchProtection"
   );
-  await sendToS3(branchProtectionData, "BranchProtection");
-  console.log("✅ BranchProtection data sent to Azure Log Analytics and S3");
+  console.log("✅ BranchProtection data sent to Azure Log Analytics");
 
-  // Get branch protection data for main branch
+  // Get commit count data
   const commitCountData = await queryCommitCount(octokit, owner, repo);
   await postData(
     logAnalyticsWorkspaceId,
@@ -103,8 +107,7 @@ const action = async () => {
     requiredFilesData,
     prefix + "RequiredFiles"
   );
-  await sendToS3(requiredFilesData, "RequiredFiles");
-  console.log("✅ RequiredFiles data sent to Azure Log Analytics and S3");
+  console.log("✅ RequiredFiles data sent to Azure Log Analytics");
 
   // Get dependabot alerts data for current branch
   const dependabotAlertsData = await queryDependabotAlerts(
@@ -144,15 +147,11 @@ const action = async () => {
       { ...codeScanningAlertsData, ...data },
       prefix + "CodeScanningAlerts"
     );
-    await sendToS3(
-      { ...codeScanningAlertsData, ...data },
-      "CodeScanningAlerts"
-    );
     console.log(
-      `⏱️ ${chunk.length} code scanning alerts sent to Azure Log Analytics and S3.`
+      `⏱️ ${chunk.length} code scanning alerts sent to Azure Log Analytics.`
     );
   }
-  console.log("✅ CodeScanningAlerts data sent to Azure Log Analytics and S3");
+  console.log("✅ CodeScanningAlerts data sent to Azure Log Analytics");
 
   // Get Renovate PRs data for current repo
   const renovatePRsData = await queryRenovatePRs(octokit, owner, repo);
@@ -172,12 +171,9 @@ const action = async () => {
       { ...renovatePRsData, ...data },
       prefix + "RenovatePRs"
     );
-    await sendToS3({ ...renovatePRsData, ...data }, "RenovatePRs");
-    console.log(
-      `⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics and S3.`
-    );
+    console.log(`⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics.`);
   }
-  console.log("✅ RenovatePRs data sent to Azure Log Analytics and S3");
+  console.log("✅ RenovatePRs data sent to Azure Log Analytics");
 
   // Get required files data for current branch
   const actionDependenciesData = await queryActionDependencies(owner, repo);
@@ -187,8 +183,7 @@ const action = async () => {
     actionDependenciesData,
     prefix + "ActionDependencies"
   );
-  await sendToS3(actionDependenciesData, "ActionDependencies");
-  console.log("✅ ActionDependencies data sent to Azure Log Analytics and S3");
+  console.log("✅ ActionDependencies data sent to Azure Log Analytics");
 
   // Get central repository data if current repo is org data repo
   if (orgDataRepo == `${owner}/${repo}`) {
@@ -212,12 +207,9 @@ const action = async () => {
         { ...usersData, ...data },
         prefix + "Users"
       );
-      await sendToS3({ ...usersData, ...data }, "Users");
-      console.log(
-        `⏱️ ${chunk.length} users sent to Azure Log Analytics and S3.`
-      );
+      console.log(`⏱️ ${chunk.length} users sent to Azure Log Analytics.`);
     }
-    console.log("✅ Users data sent to Azure Log Analytics and S3");
+    console.log("✅ Users data sent to Azure Log Analytics");
 
     // Get codespaces data from org
     console.log("🖥️ Getting codespaces data");
@@ -237,12 +229,9 @@ const action = async () => {
         { ...codespacesData, ...data },
         prefix + "Codespaces"
       );
-      await sendToS3({ ...codespacesData, ...data }, "Codespaces");
-      console.log(
-        `⏱️ ${chunk.length} codespaces sent to Azure Log Analytics and S3.`
-      );
+      console.log(`⏱️ ${chunk.length} codespaces sent to Azure Log Analytics.`);
     }
-    console.log("✅ Codespaces data sent to Azure Log Analytics and S3");
+    console.log("✅ Codespaces data sent to Azure Log Analytics");
   }
 };
 
