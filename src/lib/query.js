@@ -309,7 +309,9 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
 };
 
 const queryAllPRs = async (octokit, owner, repo) => {
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
   const q = `repo:${owner}/${repo} is:pr updated:${yesterday}`;
   let prs = [];
   await octokit
