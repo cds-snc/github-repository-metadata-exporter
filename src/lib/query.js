@@ -1,3 +1,56 @@
+const queryFailedDeployments = async (octokit, owner, repo) => {
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  let failedDeployments = [];
+  // List all deployments
+  const deployments = await octokit.paginate(
+    octokit.rest.repos.listDeployments,
+    {
+      owner,
+      repo,
+    }
+  );
+
+  for (const deployment of deployments) {
+    // Only consider deployments created yesterday
+    const createdDate = deployment.created_at.slice(0, 10);
+    if (createdDate !== yesterday) continue;
+
+    // List statuses for each deployment
+    const statuses = await octokit.paginate(
+      octokit.rest.repos.listDeploymentStatuses,
+      {
+        owner,
+        repo,
+        deployment_id: deployment.id,
+      }
+    );
+    // Find statuses with state "failure"
+    for (const status of statuses) {
+      if (status.state === "failure") {
+        failedDeployments.push({
+          deployment_id: deployment.id,
+          environment: deployment.environment,
+          created_at: deployment.created_at,
+          status_id: status.id,
+          status_state: status.state,
+          status_description: status.description,
+          status_created_at: status.created_at,
+          status_url: status.url,
+        });
+      }
+    }
+  }
+
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "failed_deployments",
+    failed_deployments: failedDeployments,
+  };
+};
 const fs = require("fs");
 const path = require("path");
 
@@ -375,4 +428,5 @@ module.exports = {
   queryRenovatePRs: queryRenovatePRs,
   queryAllPRs: queryAllPRs,
   queryUsers: queryUsers,
+  queryFailedDeployments: queryFailedDeployments,
 };

@@ -17,6 +17,7 @@ const {
   queryRequiredFiles,
   queryRenovatePRs,
   queryUsers,
+  queryFailedDeployments,
 } = require("./lib/query.js");
 
 const prefix = "GitHubMetadata_";
@@ -32,9 +33,9 @@ const action = async () => {
 
   const orgDataRepo = core.getInput("org-data-repo");
 
-  // S3 config from secrets
-  const s3Bucket = "cds-data-lake-raw-production/operations/github";
-  const awsRegion = "ca-central-1";
+  // S3 config from action parameters (set via secrets)
+  const s3Bucket = core.getInput("s3-bucket");
+  const awsRegion = core.getInput("aws-region");
 
   const auth = createAppAuth({
     appId: githubAppId,
@@ -72,6 +73,15 @@ const action = async () => {
   const allPRs = await queryAllPRs(octokit, owner, repo);
   await sendToS3(allPRs, "AllPRs");
   console.log("✅ AllPRs data sent to S3");
+
+  // Get failed deployments from yesterday and send to S3
+  const failedDeploymentsData = await queryFailedDeployments(
+    octokit,
+    owner,
+    repo
+  );
+  await sendToS3(failedDeploymentsData, "FailedDeployments");
+  console.log("✅ FailedDeployments data sent to S3");
 
   // Get branch protection data for main branch
   const branchProtectionData = await queryBranchProtection(

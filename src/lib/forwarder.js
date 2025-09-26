@@ -79,8 +79,13 @@ function jsonEscapeUTF(s) {
   );
 }
 
+// Module-level cache for S3 clients per region
+const s3Clients = {};
 async function uploadToS3(bucket, key, data, awsRegion = "ca-central-1") {
-  const s3 = new AWS.S3({ region: awsRegion });
+  if (!s3Clients[awsRegion]) {
+    s3Clients[awsRegion] = new AWS.S3({ region: awsRegion });
+  }
+  const s3 = s3Clients[awsRegion];
   const params = {
     Bucket: bucket,
     Key: key,
