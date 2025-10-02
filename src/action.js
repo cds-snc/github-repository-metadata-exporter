@@ -76,7 +76,7 @@ const action = async () => {
 
   // Get all workflow runs from yesterday and send to S3
   const workflowsData = await queryWorkflows(octokit, owner, repo);
-  await sendToS3(workflowsData, "Workflow");
+  await sendToS3(workflowsData, "Workflows");
   console.log("✅ Workflows data sent to S3");
 
   // Get branch protection data for main branch
