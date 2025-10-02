@@ -1,22 +1,21 @@
-const queryFailedWorkflows = async (octokit, owner, repo) => {
+const queryWorkflows = async (octokit, owner, repo) => {
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10);
-  let failedWorkflows = [];
-  // List workflow runs with status 'failure' from yesterday
+  let workflows = [];
+  // List all workflow runs from yesterday
   const runs = await octokit.paginate(
     octokit.rest.actions.listWorkflowRunsForRepo,
     {
       owner,
       repo,
-      status: "failure",
       created: `${yesterday}T00:00:00Z..${yesterday}T23:59:59Z`,
     }
   );
   for (const run of runs) {
     const runDate = run.created_at.slice(0, 10);
     if (runDate === yesterday) {
-      failedWorkflows.push({
+      workflows.push({
         id: run.id,
         name: run.name,
         workflow_id: run.workflow_id,
@@ -33,8 +32,8 @@ const queryFailedWorkflows = async (octokit, owner, repo) => {
   return {
     metadata_owner: owner,
     metadata_repo: repo,
-    metadata_query: "failed_workflows",
-    failed_workflows: failedWorkflows,
+    metadata_query: "workflows",
+    workflows: workflows,
   };
 };
 const fs = require("fs");
@@ -414,5 +413,5 @@ module.exports = {
   queryRenovatePRs: queryRenovatePRs,
   queryAllPRs: queryAllPRs,
   queryUsers: queryUsers,
-  queryFailedWorkflows: queryFailedWorkflows,
+  queryWorkflows: queryWorkflows,
 };
