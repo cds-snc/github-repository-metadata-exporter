@@ -1,54 +1,40 @@
-const queryFailedDeployments = async (octokit, owner, repo) => {
+const queryFailedWorkflows = async (octokit, owner, repo) => {
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10);
-
-  let failedDeployments = [];
-  // List all deployments
-  const deployments = await octokit.paginate(
-    octokit.rest.repos.listDeployments,
+  let failedWorkflows = [];
+  // List workflow runs with status 'failure' from yesterday
+  const runs = await octokit.paginate(
+    octokit.rest.actions.listWorkflowRunsForRepo,
     {
       owner,
       repo,
+      status: "failure",
+      created: `${yesterday}T00:00:00Z..${yesterday}T23:59:59Z`,
     }
   );
-
-  for (const deployment of deployments) {
-    // Only consider deployments created yesterday
-    const createdDate = deployment.created_at.slice(0, 10);
-    if (createdDate !== yesterday) continue;
-
-    // List statuses for each deployment
-    const statuses = await octokit.paginate(
-      octokit.rest.repos.listDeploymentStatuses,
-      {
-        owner,
-        repo,
-        deployment_id: deployment.id,
-      }
-    );
-    // Find statuses with state "failure"
-    for (const status of statuses) {
-      if (status.state === "failure") {
-        failedDeployments.push({
-          deployment_id: deployment.id,
-          environment: deployment.environment,
-          created_at: deployment.created_at,
-          status_id: status.id,
-          status_state: status.state,
-          status_description: status.description,
-          status_created_at: status.created_at,
-          status_url: status.url,
-        });
-      }
+  for (const run of runs) {
+    const runDate = run.created_at.slice(0, 10);
+    if (runDate === yesterday) {
+      failedWorkflows.push({
+        id: run.id,
+        name: run.name,
+        workflow_id: run.workflow_id,
+        run_number: run.run_number,
+        event: run.event,
+        status: run.status,
+        conclusion: run.conclusion,
+        created_at: run.created_at,
+        updated_at: run.updated_at,
+        html_url: run.html_url,
+      });
     }
   }
-
   return {
     metadata_owner: owner,
     metadata_repo: repo,
-    metadata_query: "failed_deployments",
-    failed_deployments: failedDeployments,
+    metadata_query: "failed_workflows",
+    failed_workflows: failedWorkflows,
   };
 };
 const fs = require("fs");
@@ -428,5 +414,5 @@ module.exports = {
   queryRenovatePRs: queryRenovatePRs,
   queryAllPRs: queryAllPRs,
   queryUsers: queryUsers,
-  queryFailedDeployments: queryFailedDeployments,
+  queryFailedWorkflows: queryFailedWorkflows,
 };

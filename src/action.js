@@ -17,7 +17,7 @@ const {
   queryRequiredFiles,
   queryRenovatePRs,
   queryUsers,
-  queryFailedDeployments,
+  queryFailedWorkflows,
 } = require("./lib/query.js");
 
 const prefix = "GitHubMetadata_";
@@ -74,14 +74,10 @@ const action = async () => {
   await sendToS3(allPRs, "AllPRs");
   console.log("✅ AllPRs data sent to S3");
 
-  // Get failed deployments from yesterday and send to S3
-  const failedDeploymentsData = await queryFailedDeployments(
-    octokit,
-    owner,
-    repo
-  );
-  await sendToS3(failedDeploymentsData, "FailedDeployments");
-  console.log("✅ FailedDeployments data sent to S3");
+  // Get failed workflow runs from yesterday and send to S3
+  const failedWorkflowsData = await queryFailedWorkflows(octokit, owner, repo);
+  await sendToS3(failedWorkflowsData, "FailedWorkflows");
+  console.log("✅ FailedWorkflows data sent to S3");
 
   // Get branch protection data for main branch
   const branchProtectionData = await queryBranchProtection(
