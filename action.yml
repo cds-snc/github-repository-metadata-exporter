@@ -3,6 +3,12 @@ description: GitHub action to export repository metadata to Sentinel
 author: "Canadian Digital Service"
 
 inputs:
+  s3-bucket:
+    description: "S3 bucket to upload data to"
+    required: true
+  aws-region:
+    description: "AWS region for S3 uploads"
+    required: true
   github-app-id:
     description: "GitHub App ID to call the GitHub API"
     required: true

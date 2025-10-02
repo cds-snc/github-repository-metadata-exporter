@@ -1,3 +1,41 @@
+const queryWorkflows = async (octokit, owner, repo) => {
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  let workflows = [];
+  // List all workflow runs from yesterday
+  const runs = await octokit.paginate(
+    octokit.rest.actions.listWorkflowRunsForRepo,
+    {
+      owner,
+      repo,
+      created: `${yesterday}T00:00:00Z..${yesterday}T23:59:59Z`,
+    }
+  );
+  for (const run of runs) {
+    const runDate = run.created_at.slice(0, 10);
+    if (runDate === yesterday) {
+      workflows.push({
+        id: run.id,
+        name: run.name,
+        workflow_id: run.workflow_id,
+        run_number: run.run_number,
+        event: run.event,
+        status: run.status,
+        conclusion: run.conclusion,
+        created_at: run.created_at,
+        updated_at: run.updated_at,
+        html_url: run.html_url,
+      });
+    }
+  }
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "workflows",
+    workflows: workflows,
+  };
+};
 const fs = require("fs");
 const path = require("path");
 
@@ -308,6 +346,37 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
   };
 };
 
+const queryAllPRs = async (octokit, owner, repo) => {
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const q = `repo:${owner}/${repo} is:pr updated:${yesterday}`;
+  let prs = [];
+  await octokit
+    .paginate(octokit.rest.search.issuesAndPullRequests, { q })
+    .then((listedPRs) => {
+      for (const pr of listedPRs) {
+        prs.push({
+          id: pr.id,
+          number: pr.number,
+          title: pr.title,
+          state: pr.state,
+          created_at: pr.created_at,
+          updated_at: pr.updated_at,
+          closed_at: pr.closed_at,
+          html_url: pr.pull_request.html_url,
+          labels: Array.isArray(pr.labels) ? pr.labels.map((l) => l.name) : [],
+        });
+      }
+    });
+  return {
+    metadata_owner: owner,
+    metadata_repo: repo,
+    metadata_query: "all_prs",
+    prs: prs,
+  };
+};
+
 const queryUsers = async (octokit, owner) => {
   let users = [];
   await octokit
@@ -342,5 +411,7 @@ module.exports = {
   queryRepository: queryRepository,
   queryRequiredFiles: queryRequiredFiles,
   queryRenovatePRs: queryRenovatePRs,
+  queryAllPRs: queryAllPRs,
   queryUsers: queryUsers,
+  queryWorkflows: queryWorkflows,
 };
