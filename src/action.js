@@ -107,8 +107,8 @@ const action = async () => {
     commitCountData,
     prefix + "CommitCount"
   );
+  console.log("✅ CommitCount data sent to Azure Log Analytics");
   await sendToS3(commitCountData, "CommitCount");
-  console.log("✅ CommitCount data sent to Azure Log Analytics and S3");
 
   // Get required files data for current branch
   const requiredFilesData = await queryRequiredFiles(owner, repo);
