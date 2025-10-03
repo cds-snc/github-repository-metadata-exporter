@@ -34,7 +34,9 @@ const action = async () => {
   const orgDataRepo = core.getInput("org-data-repo");
 
   // S3 config from action parameters (set via secrets)
-  const s3Bucket = core.getInput("s3-bucket") || "cds-data-lake-raw-production/operations/github";
+  const s3Bucket =
+    core.getInput("s3-bucket") ||
+    "cds-data-lake-raw-production/operations/github";
   const awsRegion = core.getInput("aws-region") || "ca-central-1";
 
   const auth = createAppAuth({
