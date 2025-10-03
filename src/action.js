@@ -34,8 +34,10 @@ const action = async () => {
   const orgDataRepo = core.getInput("org-data-repo");
 
   // S3 config from action parameters (set via secrets)
-  const s3Bucket = core.getInput("s3-bucket");
-  const awsRegion = core.getInput("aws-region");
+  const s3Bucket =
+    core.getInput("s3-bucket") ||
+    "cds-data-lake-raw-production/operations/github";
+  const awsRegion = core.getInput("aws-region") || "ca-central-1";
 
   const auth = createAppAuth({
     appId: githubAppId,
@@ -54,9 +56,14 @@ const action = async () => {
 
   // Helper to send to S3
   async function sendToS3(data, type) {
-    const key = `${type}/${owner}-${repo}-${new Date().toISOString()}.json`;
-    await uploadToS3(s3Bucket, key, data, awsRegion);
-    console.log(`✅ Data sent to S3: ${key}`);
+    try {
+      const key = `${type}/${owner}-${repo}-${new Date().toISOString()}.json`;
+      await uploadToS3(s3Bucket, key, data, awsRegion);
+      console.log(`✅ Data sent to S3: ${key}`);
+    } catch (error) {
+      console.log(`⚠️ Failed to send ${type} data to S3: ${error.message}`);
+      console.log("Skipping S3 upload and continuing workflow...");
+    }
   }
 
   // Get repository data
@@ -72,12 +79,10 @@ const action = async () => {
   // Get all PRs modified today and write to S3 only
   const allPRs = await queryAllPRs(octokit, owner, repo);
   await sendToS3(allPRs, "AllPRs");
-  console.log("✅ AllPRs data sent to S3");
 
   // Get all workflow runs from yesterday and send to S3
   const workflowsData = await queryWorkflows(octokit, owner, repo);
   await sendToS3(workflowsData, "Workflows");
-  console.log("✅ Workflows data sent to S3");
 
   // Get branch protection data for main branch
   const branchProtectionData = await queryBranchProtection(
@@ -102,8 +107,8 @@ const action = async () => {
     commitCountData,
     prefix + "CommitCount"
   );
+  console.log("✅ CommitCount data sent to Azure Log Analytics");
   await sendToS3(commitCountData, "CommitCount");
-  console.log("✅ CommitCount data sent to Azure Log Analytics and S3");
 
   // Get required files data for current branch
   const requiredFilesData = await queryRequiredFiles(owner, repo);
@@ -127,8 +132,8 @@ const action = async () => {
     dependabotAlertsData,
     prefix + "DependabotAlerts"
   );
+  console.log("✅ DependabotAlerts data sent to Azure Log Analytics");
   await sendToS3(dependabotAlertsData, "DependabotAlerts");
-  console.log("✅ DependabotAlerts data sent to Azure Log Analytics and S3");
 
   // Get code scanning alerts data for current branch
   const codeScanningAlertsData = await queryCodeScanningAlerts(
