@@ -77,12 +77,24 @@ const action = async () => {
   console.log("✅ Repository data sent to Azure Log Analytics");
 
   // Get all PRs modified today and write to S3 only
-  const allPRs = await queryAllPRs(octokit, owner, repo);
-  await sendToS3(allPRs, "AllPRs");
+  try {
+    const allPRs = await queryAllPRs(octokit, owner, repo);
+    await sendToS3(allPRs, "AllPRs");
+  } catch (error) {
+    console.log(`⚠️ Failed to get AllPRs data: ${error.message}`);
+    console.log("Skipping AllPRs data collection and continuing workflow...");
+  }
 
   // Get all workflow runs from yesterday and send to S3
-  const workflowsData = await queryWorkflows(octokit, owner, repo);
-  await sendToS3(workflowsData, "Workflows");
+  try {
+    const workflowsData = await queryWorkflows(octokit, owner, repo);
+    await sendToS3(workflowsData, "Workflows");
+  } catch (error) {
+    console.log(`⚠️ Failed to get Workflows data: ${error.message}`);
+    console.log(
+      "Skipping Workflows data collection and continuing workflow..."
+    );
+  }
 
   // Get branch protection data for main branch
   const branchProtectionData = await queryBranchProtection(
