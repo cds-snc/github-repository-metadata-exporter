@@ -347,33 +347,48 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
 };
 
 const queryAllPRs = async (octokit, owner, repo) => {
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
-  const q = `repo:${owner}/${repo} is:pr updated:${yesterday}`;
-  let prs = [];
-  await octokit
-    .paginate(octokit.rest.search.issuesAndPullRequests, { q })
-    .then((listedPRs) => {
-      for (const pr of listedPRs) {
-        prs.push({
-          id: pr.id,
-          number: pr.number,
-          title: pr.title,
-          state: pr.state,
-          created_at: pr.created_at,
-          updated_at: pr.updated_at,
-          closed_at: pr.closed_at,
-          html_url: pr.pull_request.html_url,
-          labels: Array.isArray(pr.labels) ? pr.labels.map((l) => l.name) : [],
-        });
-      }
-    });
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+  const prs = [];
+
+  for await (const response of octokit.paginate.iterator(
+    octokit.rest.pulls.list,
+    {
+      owner,
+      repo,
+      state: "all",
+      sort: "updated",
+      direction: "desc",
+      per_page: 100,
+    }
+  )) {
+    // keep only PRs updated since cutoff
+    const recent = response.data.filter(
+      (pr) => new Date(pr.updated_at) >= since
+    );
+    prs.push(
+      ...recent.map((pr) => ({
+        id: pr.id,
+        number: pr.number,
+        title: pr.title,
+        state: pr.state,
+        created_at: pr.created_at,
+        updated_at: pr.updated_at,
+        closed_at: pr.closed_at,
+        html_url: pr.html_url,
+        labels: (pr.labels || []).map((l) => l.name),
+      }))
+    );
+
+    // Stop early once we hit older PRs
+    const lastPR = response.data[response.data.length - 1];
+    if (new Date(lastPR.updated_at) < since) break;
+  }
+
   return {
     metadata_owner: owner,
     metadata_repo: repo,
     metadata_query: "all_prs",
-    prs: prs,
+    prs,
   };
 };
 
