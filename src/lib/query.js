@@ -348,6 +348,7 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
 
 const queryAllPRs = async (octokit, owner, repo) => {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+  const targetDate = since.toISOString().slice(0, 10); // Get just the date part (YYYY-MM-DD)
   const prs = [];
 
   for await (const response of octokit.paginate.iterator(
@@ -361,12 +362,12 @@ const queryAllPRs = async (octokit, owner, repo) => {
       per_page: 100,
     }
   )) {
-    // keep only PRs updated since cutoff
-    const recent = response.data.filter(
-      (pr) => new Date(pr.updated_at) >= since
+    // keep only PRs updated on the same date
+    const sameDate = response.data.filter(
+      (pr) => pr.updated_at.slice(0, 10) === targetDate
     );
     prs.push(
-      ...recent.map((pr) => ({
+      ...sameDate.map((pr) => ({
         id: pr.id,
         number: pr.number,
         title: pr.title,
@@ -379,9 +380,9 @@ const queryAllPRs = async (octokit, owner, repo) => {
       }))
     );
 
-    // Stop early once we hit older PRs
+    // Stop early once we hit older PRs (older than target date)
     const lastPR = response.data[response.data.length - 1];
-    if (new Date(lastPR.updated_at) < since) break;
+    if (lastPR.updated_at.slice(0, 10) < targetDate) break;
   }
 
   return {
