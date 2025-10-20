@@ -347,33 +347,49 @@ const queryRenovatePRs = async (octokit, owner, repo) => {
 };
 
 const queryAllPRs = async (octokit, owner, repo) => {
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
-  const q = `repo:${owner}/${repo} is:pr updated:${yesterday}`;
-  let prs = [];
-  await octokit
-    .paginate(octokit.rest.search.issuesAndPullRequests, { q })
-    .then((listedPRs) => {
-      for (const pr of listedPRs) {
-        prs.push({
-          id: pr.id,
-          number: pr.number,
-          title: pr.title,
-          state: pr.state,
-          created_at: pr.created_at,
-          updated_at: pr.updated_at,
-          closed_at: pr.closed_at,
-          html_url: pr.pull_request.html_url,
-          labels: Array.isArray(pr.labels) ? pr.labels.map((l) => l.name) : [],
-        });
-      }
-    });
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+  const targetDate = since.toISOString().slice(0, 10); // Get just the date part (YYYY-MM-DD)
+  const prs = [];
+
+  for await (const response of octokit.paginate.iterator(
+    octokit.rest.pulls.list,
+    {
+      owner,
+      repo,
+      state: "all",
+      sort: "updated",
+      direction: "desc",
+      per_page: 100,
+    }
+  )) {
+    // keep only PRs updated on the same date
+    const sameDate = response.data.filter(
+      (pr) => pr.updated_at.slice(0, 10) === targetDate
+    );
+    prs.push(
+      ...sameDate.map((pr) => ({
+        id: pr.id,
+        number: pr.number,
+        title: pr.title,
+        state: pr.state,
+        created_at: pr.created_at,
+        updated_at: pr.updated_at,
+        closed_at: pr.closed_at,
+        html_url: pr.html_url,
+        labels: (pr.labels || []).map((l) => l.name),
+      }))
+    );
+
+    // Stop early once we hit older PRs (older than target date)
+    const lastPR = response.data[response.data.length - 1];
+    if (lastPR.updated_at.slice(0, 10) < targetDate) break;
+  }
+
   return {
     metadata_owner: owner,
     metadata_repo: repo,
     metadata_query: "all_prs",
-    prs: prs,
+    prs,
   };
 };
 
