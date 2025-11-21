@@ -7,9 +7,10 @@ const { when } = require("jest-when");
 
 const { action } = require("./action.js");
 
-const { postData } = require("./lib/forwarder.js");
+const { postData, uploadToS3 } = require("./lib/forwarder.js");
 const {
   queryActionDependencies,
+  queryAllPRs,
   queryBranchProtection,
   queryCodeScanningAlerts,
   queryCodespaces,
@@ -19,6 +20,7 @@ const {
   queryRequiredFiles,
   queryRenovatePRs,
   queryUsers,
+  queryWorkflows,
 } = require("./lib/query.js");
 
 jest.mock("@actions/core");
@@ -41,8 +43,15 @@ jest.mock("./lib/forwarder.js");
 jest.mock("./lib/query.js");
 
 describe("action", () => {
+  let consoleLogSpy;
+
   beforeEach(() => {
     jest.resetAllMocks();
+    consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
   });
 
   test("default flow", async () => {
@@ -68,8 +77,14 @@ describe("action", () => {
     when(core.getInput)
       .calledWith("org-data-repo")
       .mockReturnValue("owner/repo");
+    when(core.getInput).calledWith("s3-bucket").mockReturnValue("");
+    when(core.getInput).calledWith("aws-region").mockReturnValue("");
 
     when(github.getOctokit).calledWith("token").mockReturnValue("octokit");
+
+    queryAllPRs.mockResolvedValue(sampleData);
+    queryWorkflows.mockResolvedValue(sampleData);
+    uploadToS3.mockResolvedValue(true);
 
     when(queryRepository)
       .calledWith("octokit", "owner", "repo")
@@ -252,5 +267,227 @@ describe("action", () => {
         "GitHubMetadata_Codespaces"
       );
     }
+  });
+
+  test("skips org data when repo is not org-data-repo", async () => {
+    const sampleData = { id: "123" };
+
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-id")
+      .mockReturnValue("workspace-id");
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-key")
+      .mockReturnValue("workspace-key");
+    when(core.getInput).calledWith("github-app-id").mockReturnValue("app-id");
+    when(core.getInput)
+      .calledWith("github-app-installation-id")
+      .mockReturnValue("installation-id");
+    when(core.getInput)
+      .calledWith("github-app-private-key")
+      .mockReturnValue("private-key");
+    when(core.getInput)
+      .calledWith("org-data-repo")
+      .mockReturnValue("different/repo");
+    when(core.getInput).calledWith("s3-bucket").mockReturnValue("");
+    when(core.getInput).calledWith("aws-region").mockReturnValue("");
+
+    when(github.getOctokit).calledWith("token").mockReturnValue("octokit");
+
+    queryRepository.mockResolvedValue(sampleData);
+    queryAllPRs.mockResolvedValue(sampleData);
+    queryWorkflows.mockResolvedValue(sampleData);
+    queryBranchProtection.mockResolvedValue(sampleData);
+    queryCommitCount.mockResolvedValue(sampleData);
+    queryRequiredFiles.mockResolvedValue(sampleData);
+    queryDependabotAlerts.mockResolvedValue(sampleData);
+    queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
+    queryRenovatePRs.mockResolvedValue({ renovate_prs: [] });
+    queryActionDependencies.mockResolvedValue(sampleData);
+    uploadToS3.mockResolvedValue(true);
+
+    await action();
+
+    expect(queryUsers).not.toHaveBeenCalled();
+    expect(queryCodespaces).not.toHaveBeenCalled();
+  });
+
+  test("uploads data to S3 with custom bucket and region", async () => {
+    const sampleData = { id: "123" };
+    const customBucket = "custom-bucket/path";
+    const customRegion = "us-east-1";
+
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-id")
+      .mockReturnValue("workspace-id");
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-key")
+      .mockReturnValue("workspace-key");
+    when(core.getInput).calledWith("github-app-id").mockReturnValue("app-id");
+    when(core.getInput)
+      .calledWith("github-app-installation-id")
+      .mockReturnValue("installation-id");
+    when(core.getInput)
+      .calledWith("github-app-private-key")
+      .mockReturnValue("private-key");
+    when(core.getInput)
+      .calledWith("org-data-repo")
+      .mockReturnValue("different/repo");
+    when(core.getInput).calledWith("s3-bucket").mockReturnValue(customBucket);
+    when(core.getInput).calledWith("aws-region").mockReturnValue(customRegion);
+
+    when(github.getOctokit).calledWith("token").mockReturnValue("octokit");
+
+    queryRepository.mockResolvedValue(sampleData);
+    queryAllPRs.mockResolvedValue(sampleData);
+    queryWorkflows.mockResolvedValue(sampleData);
+    queryBranchProtection.mockResolvedValue(sampleData);
+    queryCommitCount.mockResolvedValue(sampleData);
+    queryRequiredFiles.mockResolvedValue(sampleData);
+    queryDependabotAlerts.mockResolvedValue(sampleData);
+    queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
+    queryRenovatePRs.mockResolvedValue({ renovate_prs: [] });
+    queryActionDependencies.mockResolvedValue(sampleData);
+    uploadToS3.mockResolvedValue(true);
+
+    await action();
+
+    expect(uploadToS3).toHaveBeenCalledWith(
+      customBucket,
+      expect.stringContaining("CommitCount/"),
+      sampleData,
+      customRegion
+    );
+    expect(uploadToS3).toHaveBeenCalledWith(
+      customBucket,
+      expect.stringContaining("DependabotAlerts/"),
+      sampleData,
+      customRegion
+    );
+  });
+
+  test("continues workflow when S3 upload fails", async () => {
+    const sampleData = { id: "123" };
+
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-id")
+      .mockReturnValue("workspace-id");
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-key")
+      .mockReturnValue("workspace-key");
+    when(core.getInput).calledWith("github-app-id").mockReturnValue("app-id");
+    when(core.getInput)
+      .calledWith("github-app-installation-id")
+      .mockReturnValue("installation-id");
+    when(core.getInput)
+      .calledWith("github-app-private-key")
+      .mockReturnValue("private-key");
+    when(core.getInput)
+      .calledWith("org-data-repo")
+      .mockReturnValue("different/repo");
+    when(core.getInput).calledWith("s3-bucket").mockReturnValue("");
+    when(core.getInput).calledWith("aws-region").mockReturnValue("");
+
+    when(github.getOctokit).calledWith("token").mockReturnValue("octokit");
+
+    queryRepository.mockResolvedValue(sampleData);
+    queryAllPRs.mockResolvedValue(sampleData);
+    queryWorkflows.mockResolvedValue(sampleData);
+    queryBranchProtection.mockResolvedValue(sampleData);
+    queryCommitCount.mockResolvedValue(sampleData);
+    queryRequiredFiles.mockResolvedValue(sampleData);
+    queryDependabotAlerts.mockResolvedValue(sampleData);
+    queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
+    queryRenovatePRs.mockResolvedValue({ renovate_prs: [] });
+    queryActionDependencies.mockResolvedValue(sampleData);
+    uploadToS3.mockRejectedValue(new Error("S3 upload failed"));
+
+    await expect(action()).resolves.not.toThrow();
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect.stringContaining("⚠️ Failed to send")
+    );
+  });
+
+  test("continues workflow when queryAllPRs fails", async () => {
+    const sampleData = { id: "123" };
+
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-id")
+      .mockReturnValue("workspace-id");
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-key")
+      .mockReturnValue("workspace-key");
+    when(core.getInput).calledWith("github-app-id").mockReturnValue("app-id");
+    when(core.getInput)
+      .calledWith("github-app-installation-id")
+      .mockReturnValue("installation-id");
+    when(core.getInput)
+      .calledWith("github-app-private-key")
+      .mockReturnValue("private-key");
+    when(core.getInput)
+      .calledWith("org-data-repo")
+      .mockReturnValue("different/repo");
+    when(core.getInput).calledWith("s3-bucket").mockReturnValue("");
+    when(core.getInput).calledWith("aws-region").mockReturnValue("");
+
+    when(github.getOctokit).calledWith("token").mockReturnValue("octokit");
+
+    queryRepository.mockResolvedValue(sampleData);
+    queryAllPRs.mockRejectedValue(new Error("API error"));
+    queryWorkflows.mockResolvedValue(sampleData);
+    queryBranchProtection.mockResolvedValue(sampleData);
+    queryCommitCount.mockResolvedValue(sampleData);
+    queryRequiredFiles.mockResolvedValue(sampleData);
+    queryDependabotAlerts.mockResolvedValue(sampleData);
+    queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
+    queryRenovatePRs.mockResolvedValue({ renovate_prs: [] });
+    queryActionDependencies.mockResolvedValue(sampleData);
+    uploadToS3.mockResolvedValue(true);
+
+    await expect(action()).resolves.not.toThrow();
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect.stringContaining("⚠️ Failed to get AllPRs data")
+    );
+  });
+
+  test("continues workflow when queryWorkflows fails", async () => {
+    const sampleData = { id: "123" };
+
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-id")
+      .mockReturnValue("workspace-id");
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-key")
+      .mockReturnValue("workspace-key");
+    when(core.getInput).calledWith("github-app-id").mockReturnValue("app-id");
+    when(core.getInput)
+      .calledWith("github-app-installation-id")
+      .mockReturnValue("installation-id");
+    when(core.getInput)
+      .calledWith("github-app-private-key")
+      .mockReturnValue("private-key");
+    when(core.getInput)
+      .calledWith("org-data-repo")
+      .mockReturnValue("different/repo");
+    when(core.getInput).calledWith("s3-bucket").mockReturnValue("");
+    when(core.getInput).calledWith("aws-region").mockReturnValue("");
+
+    when(github.getOctokit).calledWith("token").mockReturnValue("octokit");
+
+    queryRepository.mockResolvedValue(sampleData);
+    queryAllPRs.mockResolvedValue(sampleData);
+    queryWorkflows.mockRejectedValue(new Error("Workflows API error"));
+    queryBranchProtection.mockResolvedValue(sampleData);
+    queryCommitCount.mockResolvedValue(sampleData);
+    queryRequiredFiles.mockResolvedValue(sampleData);
+    queryDependabotAlerts.mockResolvedValue(sampleData);
+    queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
+    queryRenovatePRs.mockResolvedValue({ renovate_prs: [] });
+    queryActionDependencies.mockResolvedValue(sampleData);
+    uploadToS3.mockResolvedValue(true);
+
+    await expect(action()).resolves.not.toThrow();
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect.stringContaining("⚠️ Failed to get Workflows data")
+    );
   });
 });
