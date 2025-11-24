@@ -1,6 +1,6 @@
 {
 	"name": "github-repository-metadata-exporter",
-	"image": "mcr.microsoft.com/vscode/devcontainers/base:buster@sha256:8b37c13a55fb3c959eb3b1a4617dea53d4a6b2e1e913acc543ce833b9bd21bc5",
+	"image": "mcr.microsoft.com/vscode/devcontainers/base:bullseye@sha256:1f1835d555af151b610cfa02f5c577f63e7d1f6ecf037de155451c781c949522",
 	"features": {
 		"node": {
 			"version": "lts"
@@ -9,10 +9,20 @@
 	"containerEnv": {
 		"SHELL": "/bin/zsh"
 	},
-	"extensions": [
-		"redhat.vscode-yaml",
-		"github.copilot"
-	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"redhat.vscode-yaml",
+				"github.copilot"
+			]
+		},
+		"codespaces": {
+			"extensions": [
+				"redhat.vscode-yaml",
+				"github.copilot"
+			]
+		}
+	},
 	"remoteUser": "vscode",
 	"postCreateCommand": ".devcontainer/postCreateCommand.sh"
 }
