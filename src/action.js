@@ -11,7 +11,7 @@ const {
   queryBranchProtection,
   queryCodeScanningAlerts,
   queryCodespaces,
-  queryCommitCount,
+  queryCommits,
   queryDependabotAlerts,
   queryRepository,
   queryRequiredFiles,
@@ -111,16 +111,19 @@ const action = async () => {
   );
   console.log("✅ BranchProtection data sent to Azure Log Analytics");
 
-  // Get commit count data
-  const commitCountData = await queryCommitCount(octokit, owner, repo);
+  // Get commit data
+  // Send commit counts to Log Analytics and full commit data to S3
+  const commitData = await queryCommits(octokit, owner, repo);
+  const { commits, ...commitCounts } = commitData; // eslint-disable-line no-unused-vars
+  const { commit_count, ...commitsFull } = commitData; // eslint-disable-line no-unused-vars
   await postData(
     logAnalyticsWorkspaceId,
     logAnalyticsWorkspaceKey,
-    commitCountData,
+    commitCounts,
     prefix + "CommitCount"
   );
   console.log("✅ CommitCount data sent to Azure Log Analytics");
-  await sendToS3(commitCountData, "CommitCount");
+  await sendToS3(commitsFull, "Commits");
 
   // Get required files data for current branch
   const requiredFilesData = await queryRequiredFiles(owner, repo);

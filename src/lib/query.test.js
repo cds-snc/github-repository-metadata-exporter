@@ -9,7 +9,7 @@ const {
   queryBranchProtection,
   queryCodeScanningAlerts,
   queryCodespaces,
-  queryCommitCount,
+  queryCommits,
   queryDependabotAlerts,
   queryRepository,
   queryRequiredFiles,
@@ -783,7 +783,7 @@ describe("queryCodespaces", () => {
   });
 });
 
-describe("queryCommitCount", () => {
+describe("queryCommits", () => {
   test("returns commit count data if the request succeeds", async () => {
     const response = {
       status: 200,
@@ -794,7 +794,12 @@ describe("queryCommitCount", () => {
           },
           commit: {
             author: {
+              email: "author@example.com",
               date: "date",
+            },
+            message: "commit message",
+            tree: {
+              sha: "abc123",
             },
             verification: {
               verified: true,
@@ -808,7 +813,12 @@ describe("queryCommitCount", () => {
           },
           commit: {
             author: {
+              email: "author@example.com",
               date: "date",
+            },
+            message: "another commit",
+            tree: {
+              sha: "def456",
             },
             verification: {
               verified: false,
@@ -837,7 +847,7 @@ describe("queryCommitCount", () => {
       .calledWith({ owner: owner, repo: repo, since: expect.anything() })
       .mockReturnValue(response);
 
-    const result = await queryCommitCount(octokit, owner, repo);
+    const result = await queryCommits(octokit, owner, repo);
     expect(result).toEqual({
       commit_count: [
         {
@@ -849,6 +859,26 @@ describe("queryCommitCount", () => {
         {
           author: "author",
           date: "date",
+          verified: false,
+          verified_reason: "bad_signature",
+        },
+      ],
+      commits: [
+        {
+          author: "author",
+          author_email: "author@example.com",
+          date: "date",
+          message: "commit message",
+          sha: "abc123",
+          verified: true,
+          verified_reason: "reason",
+        },
+        {
+          author: "author",
+          author_email: "author@example.com",
+          date: "date",
+          message: "another commit",
+          sha: "def456",
           verified: false,
           verified_reason: "bad_signature",
         },
@@ -868,7 +898,12 @@ describe("queryCommitCount", () => {
         {
           author: { login: "author1" },
           commit: {
-            author: { date: "2025-11-15T10:00:00Z" },
+            author: {
+              email: "author1@example.com",
+              date: "2025-11-15T10:00:00Z",
+            },
+            message: "test commit",
+            tree: { sha: "abc123" },
             verification: { verified: true, reason: "valid" },
           },
         },
@@ -886,7 +921,7 @@ describe("queryCommitCount", () => {
 
     const customTimeInDays = 30;
 
-    const result = await queryCommitCount(
+    const result = await queryCommits(
       octokit,
       "owner",
       "repo",
@@ -903,7 +938,12 @@ describe("queryCommitCount", () => {
         {
           author: null,
           commit: {
-            author: { date: "2025-11-15T10:00:00Z" },
+            author: {
+              email: "test@example.com",
+              date: "2025-11-15T10:00:00Z",
+            },
+            message: "test commit",
+            tree: { sha: "abc123" },
             verification: { verified: false, reason: "unsigned" },
           },
         },
@@ -920,7 +960,7 @@ describe("queryCommitCount", () => {
     };
 
     // This will throw an error when accessing null.login
-    await expect(queryCommitCount(octokit, "owner", "repo")).rejects.toThrow();
+    await expect(queryCommits(octokit, "owner", "repo")).rejects.toThrow();
   });
 
   test("handles empty commits array", async () => {
@@ -933,9 +973,10 @@ describe("queryCommitCount", () => {
       },
     };
 
-    const result = await queryCommitCount(octokit, "owner", "repo");
+    const result = await queryCommits(octokit, "owner", "repo");
 
     expect(result.commit_count).toEqual([]);
+    expect(result.commits).toEqual([]);
   });
 });
 
