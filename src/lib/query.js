@@ -189,7 +189,7 @@ const queryCodespaces = async (octokit, owner) => {
   };
 };
 
-const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {
+const queryCommits = async (octokit, owner, repo, timeInDays = 60) => {
   let date = new Date();
   let pastDate = new Date(
     date - timeInDays * 24 * 60 * 60 * 1000
@@ -208,7 +208,10 @@ const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {
       for (const commit of listedCommits) {
         commits.push({
           author: commit.author.login,
+          author_email: commit.commit.author.email,
           date: commit.commit.author.date,
+          message: commit.commit.message,
+          sha: commit.commit.tree.sha,
           verified: commit.commit.verification.verified,
           verified_reason: commit.commit.verification.reason,
         });
@@ -221,7 +224,15 @@ const queryCommitCount = async (octokit, owner, repo, timeInDays = 60) => {
     metadata_query: "commit_count",
     metadata_time_in_days: timeInDays,
     metadata_since: pastDate,
-    commit_count: commits,
+    commit_count: commits.map(
+      ({ author, date, verified, verified_reason }) => ({
+        author,
+        date,
+        verified,
+        verified_reason,
+      })
+    ),
+    commits: commits,
   };
 };
 
@@ -422,7 +433,7 @@ module.exports = {
   queryBranchProtection: queryBranchProtection,
   queryCodeScanningAlerts: queryCodeScanningAlerts,
   queryCodespaces: queryCodespaces,
-  queryCommitCount: queryCommitCount,
+  queryCommits: queryCommits,
   queryDependabotAlerts: queryDependabotAlerts,
   queryRepository: queryRepository,
   queryRequiredFiles: queryRequiredFiles,

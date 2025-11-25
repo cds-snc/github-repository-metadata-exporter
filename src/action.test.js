@@ -14,7 +14,7 @@ const {
   queryBranchProtection,
   queryCodeScanningAlerts,
   queryCodespaces,
-  queryCommitCount,
+  queryCommits,
   queryDependabotAlerts,
   queryRepository,
   queryRequiredFiles,
@@ -92,7 +92,7 @@ describe("action", () => {
     when(queryBranchProtection)
       .calledWith("octokit", "owner", "repo", "main")
       .mockReturnValue(sampleData);
-    when(queryCommitCount)
+    when(queryCommits)
       .calledWith("octokit", "owner", "repo")
       .mockReturnValue(sampleData);
     when(queryRequiredFiles)
@@ -172,7 +172,7 @@ describe("action", () => {
       "GitHubMetadata_BranchProtection"
     );
 
-    expect(queryCommitCount).toHaveBeenCalledWith("octokit", "owner", "repo");
+    expect(queryCommits).toHaveBeenCalledWith("octokit", "owner", "repo");
     expect(postData).toHaveBeenCalledWith(
       "log-analytics-workspace-id",
       "log-analytics-workspace-key",
@@ -297,7 +297,7 @@ describe("action", () => {
     queryAllPRs.mockResolvedValue(sampleData);
     queryWorkflows.mockResolvedValue(sampleData);
     queryBranchProtection.mockResolvedValue(sampleData);
-    queryCommitCount.mockResolvedValue(sampleData);
+    queryCommits.mockResolvedValue(sampleData);
     queryRequiredFiles.mockResolvedValue(sampleData);
     queryDependabotAlerts.mockResolvedValue(sampleData);
     queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
@@ -313,6 +313,7 @@ describe("action", () => {
 
   test("uploads data to S3 with custom bucket and region", async () => {
     const sampleData = { id: "123" };
+    const commitData = { id: "123", commits: [], commit_count: [] };
     const customBucket = "custom-bucket/path";
     const customRegion = "us-east-1";
 
@@ -341,7 +342,7 @@ describe("action", () => {
     queryAllPRs.mockResolvedValue(sampleData);
     queryWorkflows.mockResolvedValue(sampleData);
     queryBranchProtection.mockResolvedValue(sampleData);
-    queryCommitCount.mockResolvedValue(sampleData);
+    queryCommits.mockResolvedValue(commitData);
     queryRequiredFiles.mockResolvedValue(sampleData);
     queryDependabotAlerts.mockResolvedValue(sampleData);
     queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
@@ -353,8 +354,8 @@ describe("action", () => {
 
     expect(uploadToS3).toHaveBeenCalledWith(
       customBucket,
-      expect.stringContaining("CommitCount/"),
-      sampleData,
+      expect.stringContaining("Commits/"),
+      expect.objectContaining({ commits: expect.any(Array) }),
       customRegion
     );
     expect(uploadToS3).toHaveBeenCalledWith(
@@ -393,7 +394,7 @@ describe("action", () => {
     queryAllPRs.mockResolvedValue(sampleData);
     queryWorkflows.mockResolvedValue(sampleData);
     queryBranchProtection.mockResolvedValue(sampleData);
-    queryCommitCount.mockResolvedValue(sampleData);
+    queryCommits.mockResolvedValue(sampleData);
     queryRequiredFiles.mockResolvedValue(sampleData);
     queryDependabotAlerts.mockResolvedValue(sampleData);
     queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
@@ -435,7 +436,7 @@ describe("action", () => {
     queryAllPRs.mockRejectedValue(new Error("API error"));
     queryWorkflows.mockResolvedValue(sampleData);
     queryBranchProtection.mockResolvedValue(sampleData);
-    queryCommitCount.mockResolvedValue(sampleData);
+    queryCommits.mockResolvedValue(sampleData);
     queryRequiredFiles.mockResolvedValue(sampleData);
     queryDependabotAlerts.mockResolvedValue(sampleData);
     queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
@@ -477,7 +478,7 @@ describe("action", () => {
     queryAllPRs.mockResolvedValue(sampleData);
     queryWorkflows.mockRejectedValue(new Error("Workflows API error"));
     queryBranchProtection.mockResolvedValue(sampleData);
-    queryCommitCount.mockResolvedValue(sampleData);
+    queryCommits.mockResolvedValue(sampleData);
     queryRequiredFiles.mockResolvedValue(sampleData);
     queryDependabotAlerts.mockResolvedValue(sampleData);
     queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
