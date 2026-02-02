@@ -137,4 +137,5 @@ out
 .terraform
 *.PublishSettings
 
+package
 dist-test/
