@@ -1,7 +1,6 @@
 {
   "name": "github-repository-metadata-exporter",
   "version": "1.0.0",
-  "type": "module",
   "description": "This repository provides some base files for setting up a repository at CDS. Plan is to create more project template for specific technologies:",
   "main": "index.js",
   "scripts": {
