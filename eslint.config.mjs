@@ -3,13 +3,14 @@ import security from "eslint-plugin-security";
 import prettier from "eslint-config-prettier";
 
 export default [
-  js.configs.recommended,
-  security.configs.recommended,
-  prettier,
   {
+    files: ["src/**/*.js"],
+    plugins: {
+      security,
+    },
     languageOptions: {
       ecmaVersion: 2021,
-      sourceType: "module",
+      sourceType: "commonjs",
       globals: {
         // Node.js globals
         __dirname: "readonly",
@@ -39,6 +40,13 @@ export default [
         test: "readonly",
       },
     },
+    rules: {
+      ...js.configs.recommended.rules,
+      ...security.configs.recommended.rules,
+    },
+  },
+  {
     files: ["src/**/*.js"],
+    ...prettier,
   },
 ];
