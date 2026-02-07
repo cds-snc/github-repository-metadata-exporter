@@ -25,7 +25,7 @@
   "homepage": "https://github.com/cds-snc/github-repository-metadata-exporter#readme",
   "devDependencies": {
     "@vercel/ncc": "0.38.4",
-    "eslint": "9.26.0",
+    "eslint": "9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-security": "^3.0.1",
     "husky": "8.0.3",
