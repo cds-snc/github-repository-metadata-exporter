@@ -939,6 +939,7 @@ describe("queryCommits", () => {
           author: null,
           commit: {
             author: {
+              name: "Git User Name",
               email: "test@example.com",
               date: "2025-11-15T10:00:00Z",
             },
@@ -959,8 +960,10 @@ describe("queryCommits", () => {
       },
     };
 
-    // This will throw an error when accessing null.login
-    await expect(queryCommits(octokit, "owner", "repo")).rejects.toThrow();
+    const result = await queryCommits(octokit, "owner", "repo");
+
+    expect(result.commits[0].author).toBe("Git User Name");
+    expect(result.commits[0].author_email).toBe("test@example.com");
   });
 
   test("handles empty commits array", async () => {

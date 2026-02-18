@@ -207,7 +207,7 @@ const queryCommits = async (octokit, owner, repo, timeInDays = 60) => {
     .then((listedCommits) => {
       for (const commit of listedCommits) {
         commits.push({
-          author: commit.author.login,
+          author: commit.author?.login || commit.commit.author.name,
           author_email: commit.commit.author.email,
           date: commit.commit.author.date,
           message: commit.commit.message,
