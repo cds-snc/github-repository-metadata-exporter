@@ -179,6 +179,9 @@ const action = async () => {
   }
   console.log("✅ CodeScanningAlerts data sent to Azure Log Analytics");
 
+  await sendToS3(codeScanningAlertsData, "CodeScanningAlerts");
+  console.log("✅ CodeScanningAlerts data sent to s3");
+
   // Get Renovate PRs data for current repo
   const renovatePRsData = await queryRenovatePRs(octokit, owner, repo);
 
