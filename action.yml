@@ -18,12 +18,37 @@ inputs:
   github-app-private-key:
     description: "GitHub App private key to call the GitHub API"
     required: true
+  forwarder-mode:
+    description: "Azure forwarding mode: legacy (Log Analytics shared key) or dcr (DCE/DCR ingestion). Defaults to legacy."
+    required: false
+    default: "legacy"
   log-analytics-workspace-id:
-    description: "Azure Log Analytics Workspace ID"
-    required: true
+    description: "Azure Log Analytics Workspace ID (required when forwarder-mode is legacy)"
+    required: false
   log-analytics-workspace-key:
-    description: "Azure Log Analytics Workspace Key"
-    required: true
+    description: "Azure Log Analytics Workspace Key (required when forwarder-mode is legacy)"
+    required: false
+  azure-dce-endpoint:
+    description: "Azure Data Collection Endpoint ingestion URL (required when forwarder-mode is dcr)"
+    required: false
+  azure-dcr-immutable-id:
+    description: "Azure Data Collection Rule immutable ID (required when forwarder-mode is dcr)"
+    required: false
+  azure-dcr-stream-name:
+    description: "Azure Monitor stream name used for DCR ingestion, for example Custom-GitHubMetadata (required when forwarder-mode is dcr)"
+    required: false
+  azure-monitor-ingestion-token:
+    description: "Optional Azure Monitor ingestion bearer token for DCR mode. If omitted, provide azure-tenant-id, azure-client-id, and azure-client-secret."
+    required: false
+  azure-tenant-id:
+    description: "Azure AD tenant ID for DCR mode service principal authentication"
+    required: false
+  azure-client-id:
+    description: "Azure AD client ID for DCR mode service principal authentication"
+    required: false
+  azure-client-secret:
+    description: "Azure AD client secret for DCR mode service principal authentication"
+    required: false
   org-data-repo:
     description: "{owner}/{repo} that collects org data"
     required: false

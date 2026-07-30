@@ -7,7 +7,7 @@ const { when } = require("jest-when");
 
 const { action } = require("./action.js");
 
-const { postData, uploadToS3 } = require("./lib/forwarder.js");
+const { postData, postDataDcr, uploadToS3 } = require("./lib/forwarder.js");
 const {
   queryActionDependencies,
   queryAllPRs,
@@ -267,6 +267,124 @@ describe("action", () => {
         "GitHubMetadata_Codespaces"
       );
     }
+
+    expect(postDataDcr).not.toHaveBeenCalled();
+  });
+
+  test("uses DCR forwarding mode when forwarder-mode is dcr", async () => {
+    const sampleData = { id: "123" };
+
+    when(core.getInput).calledWith("forwarder-mode").mockReturnValue("dcr");
+    when(core.getInput).calledWith("azure-dce-endpoint").mockReturnValue(
+      "https://example.ingest.monitor.azure.com"
+    );
+    when(core.getInput)
+      .calledWith("azure-dcr-immutable-id")
+      .mockReturnValue("dcr-id");
+    when(core.getInput)
+      .calledWith("azure-dcr-stream-name")
+      .mockReturnValue("Custom-GitHubMetadata");
+    when(core.getInput)
+      .calledWith("azure-monitor-ingestion-token")
+      .mockReturnValue("token");
+
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-id")
+      .mockReturnValue("");
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-key")
+      .mockReturnValue("");
+    when(core.getInput).calledWith("github-app-id").mockReturnValue("app-id");
+    when(core.getInput)
+      .calledWith("github-app-installation-id")
+      .mockReturnValue("installation-id");
+    when(core.getInput)
+      .calledWith("github-app-private-key")
+      .mockReturnValue("private-key");
+    when(core.getInput)
+      .calledWith("org-data-repo")
+      .mockReturnValue("different/repo");
+    when(core.getInput).calledWith("s3-bucket").mockReturnValue("");
+    when(core.getInput).calledWith("aws-region").mockReturnValue("");
+
+    when(github.getOctokit).calledWith("token").mockReturnValue("octokit");
+
+    queryRepository.mockResolvedValue(sampleData);
+    queryAllPRs.mockResolvedValue(sampleData);
+    queryWorkflows.mockResolvedValue(sampleData);
+    queryBranchProtection.mockResolvedValue(sampleData);
+    queryCommits.mockResolvedValue(sampleData);
+    queryRequiredFiles.mockResolvedValue(sampleData);
+    queryDependabotAlerts.mockResolvedValue(sampleData);
+    queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
+    queryRenovatePRs.mockResolvedValue({ renovate_prs: [] });
+    queryActionDependencies.mockResolvedValue(sampleData);
+    uploadToS3.mockResolvedValue(true);
+    postDataDcr.mockResolvedValue(true);
+
+    await action();
+
+    expect(postData).not.toHaveBeenCalled();
+    expect(postDataDcr).toHaveBeenCalledWith(
+      {
+        azureDceEndpoint: "https://example.ingest.monitor.azure.com",
+        azureDcrImmutableId: "dcr-id",
+        azureDcrStreamName: "Custom-GitHubMetadata",
+        azureMonitorIngestionToken: "token",
+        azureTenantId: undefined,
+        azureClientId: undefined,
+        azureClientSecret: undefined,
+      },
+      sampleData
+    );
+  });
+
+  test("fails with clear message when legacy config is missing", async () => {
+    when(core.getInput)
+      .calledWith("forwarder-mode")
+      .mockReturnValue("legacy");
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-id")
+      .mockReturnValue("");
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-key")
+      .mockReturnValue("");
+    when(core.getInput).calledWith("github-app-id").mockReturnValue("app-id");
+    when(core.getInput)
+      .calledWith("github-app-installation-id")
+      .mockReturnValue("installation-id");
+    when(core.getInput)
+      .calledWith("github-app-private-key")
+      .mockReturnValue("private-key");
+
+    await expect(action()).rejects.toThrow(
+      "Missing required legacy forwarding input(s): logAnalyticsWorkspaceId, logAnalyticsWorkspaceKey"
+    );
+  });
+
+  test("fails with clear message when DCR config is missing", async () => {
+    when(core.getInput).calledWith("forwarder-mode").mockReturnValue("dcr");
+    when(core.getInput).calledWith("azure-dce-endpoint").mockReturnValue("");
+    when(core.getInput)
+      .calledWith("azure-dcr-immutable-id")
+      .mockReturnValue("");
+    when(core.getInput)
+      .calledWith("azure-dcr-stream-name")
+      .mockReturnValue("");
+    when(core.getInput)
+      .calledWith("azure-monitor-ingestion-token")
+      .mockReturnValue("");
+    when(core.getInput).calledWith("github-app-id").mockReturnValue("app-id");
+    when(core.getInput)
+      .calledWith("github-app-installation-id")
+      .mockReturnValue("installation-id");
+    when(core.getInput)
+      .calledWith("github-app-private-key")
+      .mockReturnValue("private-key");
+
+    await expect(action()).rejects.toThrow(
+      "Missing required DCR forwarding input(s): azureDceEndpoint, azureDcrImmutableId, azureDcrStreamName"
+    );
   });
 
   test("skips org data when repo is not org-data-repo", async () => {

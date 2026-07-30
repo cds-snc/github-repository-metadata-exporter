@@ -4,7 +4,12 @@ const crypto = require("crypto");
 const superagent = require("superagent");
 const AWS = require("aws-sdk");
 
-const { postData, jsonEscapeUTF, uploadToS3 } = require("./forwarder.js");
+const {
+  postData,
+  postDataDcr,
+  jsonEscapeUTF,
+  uploadToS3,
+} = require("./forwarder.js");
 
 jest.mock("superagent");
 jest.mock("aws-sdk");
@@ -294,5 +299,113 @@ describe("buildSignature", () => {
     expect(capturedHeaders["x-ms-date"]).toBeTruthy();
     expect(capturedHeaders["Log-Type"]).toBe(logType);
     expect(capturedHeaders["content-type"]).toBe("application/json");
+  });
+});
+
+describe("postDataDcr", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("returns true if DCR request succeeds with pre-generated token", async () => {
+    const config = {
+      azureDceEndpoint: "https://example.ingest.monitor.azure.com",
+      azureDcrImmutableId: "dcr-immutable-id",
+      azureDcrStreamName: "Custom-GitHubMetadata",
+      azureMonitorIngestionToken: "ingestion-token",
+      azureTenantId: "",
+      azureClientId: "",
+      azureClientSecret: "",
+    };
+    const data = { id: "123" };
+
+    superagent.post.mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        send: jest.fn().mockResolvedValue({ status: 204 }),
+      }),
+    });
+
+    const result = await postDataDcr(config, data);
+
+    expect(result).toBe(true);
+    expect(superagent.post).toHaveBeenCalledWith(
+      "https://example.ingest.monitor.azure.com/dataCollectionRules/dcr-immutable-id/streams/Custom-GitHubMetadata?api-version=2023-01-01"
+    );
+  });
+
+  test("gets token with service principal and posts data", async () => {
+    const config = {
+      azureDceEndpoint: "https://example.ingest.monitor.azure.com",
+      azureDcrImmutableId: "dcr-immutable-id",
+      azureDcrStreamName: "Custom-GitHubMetadata",
+      azureMonitorIngestionToken: "",
+      azureTenantId: "tenant-id",
+      azureClientId: "client-id",
+      azureClientSecret: "client-secret",
+    };
+    const data = { id: "123" };
+
+    const tokenSend = jest.fn().mockResolvedValue({
+      body: {
+        access_token: "token-from-aad",
+      },
+    });
+
+    const ingestionSend = jest.fn().mockResolvedValue({ status: 200 });
+
+    superagent.post
+      .mockReturnValueOnce({
+        type: jest.fn().mockReturnValue({
+          send: tokenSend,
+        }),
+      })
+      .mockReturnValueOnce({
+        set: jest.fn().mockReturnValue({
+          send: ingestionSend,
+        }),
+      });
+
+    const result = await postDataDcr(config, data);
+
+    expect(result).toBe(true);
+    expect(superagent.post).toHaveBeenNthCalledWith(
+      1,
+      "https://login.microsoftonline.com/tenant-id/oauth2/v2.0/token"
+    );
+    expect(tokenSend).toHaveBeenCalledWith({
+      client_id: "client-id",
+      client_secret: "client-secret",
+      scope: "https://monitor.azure.com/.default",
+      grant_type: "client_credentials",
+    });
+    expect(ingestionSend).toHaveBeenCalledWith([data]);
+  });
+
+  test("throws an error if DCR ingestion fails", async () => {
+    const config = {
+      azureDceEndpoint: "https://example.ingest.monitor.azure.com",
+      azureDcrImmutableId: "dcr-immutable-id",
+      azureDcrStreamName: "Custom-GitHubMetadata",
+      azureMonitorIngestionToken: "ingestion-token",
+      azureTenantId: "",
+      azureClientId: "",
+      azureClientSecret: "",
+    };
+    const data = { id: "123" };
+
+    const response = {
+      status: 400,
+      text: "Bad request",
+    };
+
+    superagent.post.mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        send: jest.fn().mockResolvedValue(response),
+      }),
+    });
+
+    await expect(postDataDcr(config, data)).rejects.toThrow(
+      "Error posting data to Azure Monitor DCE/DCR: 400"
+    );
   });
 });
