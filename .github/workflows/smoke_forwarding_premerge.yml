@@ -1,0 +1,73 @@
+name: Smoke test forwarding (pre-merge)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - action.yml
+      - src/action.js
+      - src/lib/forwarder.js
+      - src/lib/query.js
+      - .github/workflows/smoke_forwarding_premerge.yml
+
+permissions:
+  id-token: write
+  contents: read
+  issues: read
+  pull-requests: read
+  security-events: read
+
+jobs:
+  smoke-legacy-forwarding:
+    name: Smoke test legacy forwarding
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: arn:aws:iam::739275439843:role/data-lake-github-data-export
+          role-session-name: GithubDataExportLegacySmoke
+          aws-region: ca-central-1
+
+      - name: Run action in legacy mode
+        uses: ./
+        with:
+          github-app-id: ${{ secrets.SRE_BOT_RO_APP_ID }}
+          github-app-installation-id: ${{ secrets.SRE_BOT_RO_INSTALLATION_ID }}
+          github-app-private-key: ${{ secrets.SRE_BOT_RO_PRIVATE_KEY }}
+          forwarder-mode: legacy
+          log-analytics-workspace-id: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
+          log-analytics-workspace-key: ${{ secrets.LOG_ANALYTICS_WORKSPACE_KEY }}
+          s3-bucket: ${{ secrets.DATA_LAKE_GITHUB_METADATA_EXPORT_S3_BUCKET }}
+          aws-region: ${{ secrets.DATA_LAKE_GITHUB_METADATA_EXPORT_AWS_REGION }}
+
+  smoke-dcr-forwarding:
+    name: Smoke test DCR forwarding
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: arn:aws:iam::739275439843:role/data-lake-github-data-export
+          role-session-name: GithubDataExportDcrSmoke
+          aws-region: ca-central-1
+
+      - name: Run action in DCR mode (federated credentials)
+        uses: ./
+        with:
+          github-app-id: ${{ secrets.SRE_BOT_RO_APP_ID }}
+          github-app-installation-id: ${{ secrets.SRE_BOT_RO_INSTALLATION_ID }}
+          github-app-private-key: ${{ secrets.SRE_BOT_RO_PRIVATE_KEY }}
+          forwarder-mode: dcr
+          azure-dce-endpoint: ${{ secrets.SENTINEL_DCE_ENDPOINT }}
+          azure-dcr-immutable-ids: ${{ vars.AZURE_DCR_IMMUTABLE_IDS_MAP_GITHUB_METADATA }}
+          azure-tenant-id: ${{ vars.SENTINEL_FORWARDER_V2_GITHUB_ACTIONS_TENANT_ID }}
+          azure-client-id: ${{ vars.SENTINEL_FORWARDER_V2_GITHUB_ACTIONS_CLIENT_ID }}
+          s3-bucket: ${{ secrets.DATA_LAKE_GITHUB_METADATA_EXPORT_S3_BUCKET }}
+          aws-region: ${{ secrets.DATA_LAKE_GITHUB_METADATA_EXPORT_AWS_REGION }}

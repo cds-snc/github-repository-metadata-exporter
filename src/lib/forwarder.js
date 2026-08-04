@@ -100,8 +100,68 @@ async function uploadToS3(bucket, key, data, awsRegion = "ca-central-1") {
   }
 }
 
+let _cachedToken = null;
+let _tokenExpiry = 0;
+
+const getAzureToken = async (tenantId, clientId, federatedToken) => {
+  if (_cachedToken && Date.now() < _tokenExpiry) {
+    return _cachedToken;
+  }
+
+  const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+  const params = new URLSearchParams({
+    grant_type: "client_credentials",
+    client_id: clientId,
+    client_assertion_type:
+      "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+    client_assertion: federatedToken,
+    scope: "https://monitor.azure.com/.default",
+  });
+
+  try {
+    const response = await superagent
+      .post(tokenUrl)
+      .set("Content-Type", "application/x-www-form-urlencoded")
+      .send(params.toString());
+    if (response.status !== 200) {
+      throw response;
+    }
+    const expiresIn = response.body.expires_in || 3600;
+    _cachedToken = response.body.access_token;
+    _tokenExpiry = Date.now() + (expiresIn - 60) * 1000;
+    return _cachedToken;
+  } catch (error) {
+    throw new Error(`Failed to get Azure token: ${error.status}`);
+  }
+};
+
+const postDataDCR = async (dceEndpoint, dcrImmutableId, streamName, body, token) => {
+  const jsonBody = jsonEscapeUTF(
+    JSON.stringify(Array.isArray(body) ? body : [body])
+  );
+  const url = `${dceEndpoint}/dataCollectionRules/${dcrImmutableId}/streams/${streamName}?api-version=2023-01-01`;
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+
+  try {
+    const response = await superagent.post(url).set(headers).send(jsonBody);
+    if (response.status !== 204) {
+      throw response;
+    }
+  } catch (error) {
+    throw new Error(
+      `Error posting data to DCR ${dcrImmutableId}: ${error.status}`
+    );
+  }
+  return true;
+};
+
 module.exports = {
   jsonEscapeUTF: jsonEscapeUTF,
   postData: postData,
+  postDataDCR: postDataDCR,
+  getAzureToken: getAzureToken,
   uploadToS3: uploadToS3,
 };
