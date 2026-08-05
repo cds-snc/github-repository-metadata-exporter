@@ -483,7 +483,9 @@ describe("postDataDCR", () => {
         {},
         "token"
       )
-    ).rejects.toThrow("Error posting data to DCR dcr-abc123: undefined");
+    ).rejects.toThrow(
+      "Error posting data to DCR dcr-abc123 stream Custom-GitHubMetadata_Repository_v2_input"
+    );
   });
 
   test("throws on network error", async () => {
@@ -504,6 +506,8 @@ describe("postDataDCR", () => {
         {},
         "token"
       )
-    ).rejects.toThrow("Error posting data to DCR dcr-abc123: 503");
+    ).rejects.toThrow(
+      "Error posting data to DCR dcr-abc123 stream Custom-GitHubMetadata_Repository_v2_input: 503"
+    );
   });
 });

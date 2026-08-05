@@ -151,8 +151,20 @@ const postDataDCR = async (dceEndpoint, dcrImmutableId, streamName, body, token)
       throw response;
     }
   } catch (error) {
+    const status = error.status || error.response?.status || "unknown";
+    const rawDetail =
+      error.response?.body ||
+      error.response?.text ||
+      error.text ||
+      error.message ||
+      "no detail";
+    let detail =
+      typeof rawDetail === "string" ? rawDetail : JSON.stringify(rawDetail);
+    if (detail.length > 1200) {
+      detail = `${detail.slice(0, 1200)}...`;
+    }
     throw new Error(
-      `Error posting data to DCR ${dcrImmutableId}: ${error.status}`
+      `Error posting data to DCR ${dcrImmutableId} stream ${streamName}: ${status}. ${detail}`
     );
   }
   return true;
