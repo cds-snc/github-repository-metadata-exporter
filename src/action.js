@@ -111,7 +111,7 @@ const action = async () => {
       await postDataDCR(
         dceEndpoint,
         dcrImmutableIds[logTypeSuffix],
-        `Custom-GitHubMetadata_${logTypeSuffix}`,
+        `Custom-GitHubMetadata_${logTypeSuffix}_v2_input`,
         data,
         dcrAccessToken
       );

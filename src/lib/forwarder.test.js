@@ -397,7 +397,7 @@ describe("postDataDCR", () => {
     const result = await postDataDCR(
       "https://dce.example.com",
       "dcr-abc123",
-      "Custom-GitHubMetadata_Repository",
+      "Custom-GitHubMetadata_Repository_v2_input",
       { id: "1" },
       "bearer-token"
     );
@@ -408,7 +408,7 @@ describe("postDataDCR", () => {
   test("posts to correct Log Ingestion API URL", async () => {
     const dceEndpoint = "https://dce.example.com";
     const dcrImmutableId = "dcr-abc123";
-    const streamName = "Custom-GitHubMetadata_Repository";
+    const streamName = "Custom-GitHubMetadata_Repository_v2_input";
 
     superagent.post.mockReturnValue({
       set: jest.fn().mockReturnValue({
@@ -437,7 +437,7 @@ describe("postDataDCR", () => {
     await postDataDCR(
       "https://dce.example.com",
       "dcr-abc123",
-      "Custom-GitHubMetadata_Repository",
+      "Custom-GitHubMetadata_Repository_v2_input",
       { id: "1" },
       "token"
     );
@@ -459,7 +459,7 @@ describe("postDataDCR", () => {
     await postDataDCR(
       "https://dce.example.com",
       "dcr-abc123",
-      "Custom-GitHubMetadata_Repository",
+      "Custom-GitHubMetadata_Repository_v2_input",
       {},
       "my-bearer-token"
     );
@@ -479,7 +479,7 @@ describe("postDataDCR", () => {
       postDataDCR(
         "https://dce.example.com",
         "dcr-abc123",
-        "Custom-GitHubMetadata_Repository",
+        "Custom-GitHubMetadata_Repository_v2_input",
         {},
         "token"
       )
@@ -500,7 +500,7 @@ describe("postDataDCR", () => {
       postDataDCR(
         "https://dce.example.com",
         "dcr-abc123",
-        "Custom-GitHubMetadata_Repository",
+        "Custom-GitHubMetadata_Repository_v2_input",
         {},
         "token"
       )
