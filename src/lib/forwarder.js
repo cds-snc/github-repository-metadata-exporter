@@ -135,7 +135,13 @@ const getAzureToken = async (tenantId, clientId, federatedToken) => {
   }
 };
 
-const postDataDCR = async (dceEndpoint, dcrImmutableId, streamName, body, token) => {
+const postDataDCR = async (
+  dceEndpoint,
+  dcrImmutableId,
+  streamName,
+  body,
+  token
+) => {
   const jsonBody = jsonEscapeUTF(
     JSON.stringify(Array.isArray(body) ? body : [body])
   );

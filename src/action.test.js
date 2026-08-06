@@ -7,7 +7,12 @@ const { when } = require("jest-when");
 
 const { action } = require("./action.js");
 
-const { postData, postDataDCR, getAzureToken, uploadToS3 } = require("./lib/forwarder.js");
+const {
+  postData,
+  postDataDCR,
+  getAzureToken,
+  uploadToS3,
+} = require("./lib/forwarder.js");
 const {
   queryActionDependencies,
   queryAllPRs,
@@ -523,9 +528,7 @@ describe("action", () => {
       .mockReturnValue("different/repo");
     when(core.getInput).calledWith("s3-bucket").mockReturnValue("");
     when(core.getInput).calledWith("aws-region").mockReturnValue("");
-    when(core.getInput)
-      .calledWith("forwarder-mode")
-      .mockReturnValue("dcr");
+    when(core.getInput).calledWith("forwarder-mode").mockReturnValue("dcr");
     when(core.getInput)
       .calledWith("azure-dce-endpoint")
       .mockReturnValue("https://dce.example.com");
@@ -614,9 +617,7 @@ describe("action", () => {
       .mockReturnValue("different/repo");
     when(core.getInput).calledWith("s3-bucket").mockReturnValue("");
     when(core.getInput).calledWith("aws-region").mockReturnValue("");
-    when(core.getInput)
-      .calledWith("forwarder-mode")
-      .mockReturnValue("dcr");
+    when(core.getInput).calledWith("forwarder-mode").mockReturnValue("dcr");
     when(core.getInput)
       .calledWith("azure-dce-endpoint")
       .mockReturnValue("https://dce.example.com");

@@ -4,7 +4,13 @@ const crypto = require("crypto");
 const superagent = require("superagent");
 const AWS = require("aws-sdk");
 
-const { postData, getAzureToken, postDataDCR, jsonEscapeUTF, uploadToS3 } = require("./forwarder.js");
+const {
+  postData,
+  getAzureToken,
+  postDataDCR,
+  jsonEscapeUTF,
+  uploadToS3,
+} = require("./forwarder.js");
 
 jest.mock("superagent");
 jest.mock("aws-sdk");
@@ -361,9 +367,9 @@ describe("getAzureToken", () => {
       }),
     });
 
-    await expect(
-      getAzureToken("tenant", "client", "oidc")
-    ).rejects.toThrow("Failed to get Azure token: 401");
+    await expect(getAzureToken("tenant", "client", "oidc")).rejects.toThrow(
+      "Failed to get Azure token: 401"
+    );
   });
 
   test("throws when token endpoint call fails", async () => {
@@ -376,9 +382,9 @@ describe("getAzureToken", () => {
       }),
     });
 
-    await expect(
-      getAzureToken("tenant", "client", "oidc")
-    ).rejects.toThrow("Failed to get Azure token: undefined");
+    await expect(getAzureToken("tenant", "client", "oidc")).rejects.toThrow(
+      "Failed to get Azure token: undefined"
+    );
   });
 });
 
