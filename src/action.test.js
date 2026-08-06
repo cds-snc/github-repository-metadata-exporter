@@ -571,7 +571,7 @@ describe("action", () => {
     expect(postDataDCR).toHaveBeenCalledWith(
       "https://dce.example.com",
       "dcr-repository",
-      "Custom-GitHubMetadata_Repository_v2_input",
+      "Custom-GitHubMetadata_Repository_v2_Input",
       sampleData,
       "test-azure-token"
     );
@@ -583,14 +583,14 @@ describe("action", () => {
     expect(postDataDCR).toHaveBeenCalledWith(
       "https://dce.example.com",
       "dcr-dependabotalerts",
-      "Custom-GitHubMetadata_DependabotAlerts_v2_input",
+      "Custom-GitHubMetadata_DependabotAlerts_v2_Input",
       sampleData,
       "test-azure-token"
     );
     expect(postDataDCR).toHaveBeenCalledWith(
       "https://dce.example.com",
       "dcr-actiondependencies",
-      "Custom-GitHubMetadata_ActionDependencies_v2_input",
+      "Custom-GitHubMetadata_ActionDependencies_v2_Input",
       sampleData,
       "test-azure-token"
     );
