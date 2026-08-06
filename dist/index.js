@@ -96054,7 +96054,12 @@ const core = __nccwpck_require__(37484);
 const github = __nccwpck_require__(93228);
 const { createAppAuth } = __nccwpck_require__(98594);
 
-const { postData, postDataDCR, getAzureToken, uploadToS3 } = __nccwpck_require__(73395);
+const {
+  postData,
+  postDataDCR,
+  getAzureToken,
+  uploadToS3,
+} = __nccwpck_require__(73395);
 const {
   queryActionDependencies,
   queryAllPRs,
@@ -96092,7 +96097,9 @@ const action = async () => {
   const forwarderMode = core.getInput("forwarder-mode") || "legacy";
   const dceEndpoint = core.getInput("azure-dce-endpoint");
   const dcrImmutableIdsRaw = core.getInput("azure-dcr-immutable-ids");
-  const dcrImmutableIds = dcrImmutableIdsRaw ? JSON.parse(dcrImmutableIdsRaw) : {};
+  const dcrImmutableIds = dcrImmutableIdsRaw
+    ? JSON.parse(dcrImmutableIdsRaw)
+    : {};
   const azureTenantId = core.getInput("azure-tenant-id");
   const azureClientId = core.getInput("azure-client-id");
   const azureOidcAudience =
@@ -96134,15 +96141,23 @@ const action = async () => {
     }
 
     const requiredTypes = [
-      "Repository", "BranchProtection", "CommitCount", "RequiredFiles",
-      "DependabotAlerts", "CodeScanningAlerts", "RenovatePRs", "ActionDependencies",
+      "Repository",
+      "BranchProtection",
+      "CommitCount",
+      "RequiredFiles",
+      "DependabotAlerts",
+      "CodeScanningAlerts",
+      "RenovatePRs",
+      "ActionDependencies",
     ];
     if (orgDataRepo === `${owner}/${repo}`) {
       requiredTypes.push("Users", "Codespaces");
     }
     const missing = requiredTypes.filter((t) => !dcrImmutableIds[t]);
     if (missing.length > 0) {
-      throw new Error(`DCR mode: missing immutable IDs for log types: ${missing.join(", ")}`);
+      throw new Error(
+        `DCR mode: missing immutable IDs for log types: ${missing.join(", ")}`
+      );
     }
   }
 
@@ -96166,7 +96181,12 @@ const action = async () => {
         dcrAccessToken
       );
     } else {
-      await postData(logAnalyticsWorkspaceId, logAnalyticsWorkspaceKey, data, prefix + logTypeSuffix);
+      await postData(
+        logAnalyticsWorkspaceId,
+        logAnalyticsWorkspaceKey,
+        data,
+        prefix + logTypeSuffix
+      );
     }
   }
 
@@ -96246,7 +96266,10 @@ const action = async () => {
       code_scanning_alerts: chunk,
     };
 
-    await postToAzure("CodeScanningAlerts", { ...codeScanningAlertsData, ...data });
+    await postToAzure("CodeScanningAlerts", {
+      ...codeScanningAlertsData,
+      ...data,
+    });
     console.log(
       `⏱️ ${chunk.length} code scanning alerts sent to Azure Log Analytics.`
     );
@@ -96465,7 +96488,13 @@ const getAzureToken = async (tenantId, clientId, federatedToken) => {
   }
 };
 
-const postDataDCR = async (dceEndpoint, dcrImmutableId, streamName, body, token) => {
+const postDataDCR = async (
+  dceEndpoint,
+  dcrImmutableId,
+  streamName,
+  body,
+  token
+) => {
   const jsonBody = jsonEscapeUTF(
     JSON.stringify(Array.isArray(body) ? body : [body])
   );
