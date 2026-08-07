@@ -4,7 +4,13 @@ const crypto = require("crypto");
 const superagent = require("superagent");
 const AWS = require("aws-sdk");
 
-const { postData, jsonEscapeUTF, uploadToS3 } = require("./forwarder.js");
+const {
+  postData,
+  getAzureToken,
+  postDataDCR,
+  jsonEscapeUTF,
+  uploadToS3,
+} = require("./forwarder.js");
 
 jest.mock("superagent");
 jest.mock("aws-sdk");
@@ -294,5 +300,220 @@ describe("buildSignature", () => {
     expect(capturedHeaders["x-ms-date"]).toBeTruthy();
     expect(capturedHeaders["Log-Type"]).toBe(logType);
     expect(capturedHeaders["content-type"]).toBe("application/json");
+  });
+});
+
+describe("getAzureToken", () => {
+  // Force cache miss on every call by making Date.now() return Infinity,
+  // so _tokenExpiry (Infinity + finite = Infinity) is never > Infinity.
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(Date, "now").mockReturnValue(Infinity);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("returns access token on success", async () => {
+    const tenantId = "test-tenant";
+    const clientId = "test-client";
+    const federatedToken = "github-oidc-token";
+
+    superagent.post.mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        send: jest.fn().mockResolvedValue({
+          status: 200,
+          body: { access_token: "test-token", expires_in: 3600 },
+        }),
+      }),
+    });
+
+    const token = await getAzureToken(tenantId, clientId, federatedToken);
+
+    expect(token).toBe("test-token");
+    expect(superagent.post).toHaveBeenCalledWith(
+      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`
+    );
+  });
+
+  test("sends federated assertion payload", async () => {
+    let capturedPayload;
+    superagent.post.mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        send: jest.fn().mockImplementation((payload) => {
+          capturedPayload = payload;
+          return Promise.resolve({
+            status: 200,
+            body: { access_token: "test-token", expires_in: 3600 },
+          });
+        }),
+      }),
+    });
+
+    await getAzureToken("tenant", "client", "oidc-jwt");
+
+    expect(capturedPayload).toContain(
+      "client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer"
+    );
+    expect(capturedPayload).toContain("client_assertion=oidc-jwt");
+    expect(capturedPayload).not.toContain("client_secret");
+  });
+
+  test("throws when token endpoint returns non-200", async () => {
+    superagent.post.mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        send: jest.fn().mockResolvedValue({ status: 401 }),
+      }),
+    });
+
+    await expect(getAzureToken("tenant", "client", "oidc")).rejects.toThrow(
+      "Failed to get Azure token: 401"
+    );
+  });
+
+  test("throws when token endpoint call fails", async () => {
+    const networkError = new Error("Network error");
+    networkError.status = undefined;
+
+    superagent.post.mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        send: jest.fn().mockRejectedValue(networkError),
+      }),
+    });
+
+    await expect(getAzureToken("tenant", "client", "oidc")).rejects.toThrow(
+      "Failed to get Azure token: undefined"
+    );
+  });
+});
+
+describe("postDataDCR", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("returns true on 204 response", async () => {
+    superagent.post.mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        send: jest.fn().mockResolvedValue({ status: 204 }),
+      }),
+    });
+
+    const result = await postDataDCR(
+      "https://dce.example.com",
+      "dcr-abc123",
+      "Custom-GitHubMetadata_Repository_v2_input",
+      { id: "1" },
+      "bearer-token"
+    );
+
+    expect(result).toBe(true);
+  });
+
+  test("posts to correct Log Ingestion API URL", async () => {
+    const dceEndpoint = "https://dce.example.com";
+    const dcrImmutableId = "dcr-abc123";
+    const streamName = "Custom-GitHubMetadata_Repository_v2_input";
+
+    superagent.post.mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        send: jest.fn().mockResolvedValue({ status: 204 }),
+      }),
+    });
+
+    await postDataDCR(dceEndpoint, dcrImmutableId, streamName, {}, "token");
+
+    expect(superagent.post).toHaveBeenCalledWith(
+      `${dceEndpoint}/dataCollectionRules/${dcrImmutableId}/streams/${streamName}?api-version=2023-01-01`
+    );
+  });
+
+  test("wraps single object body in array", async () => {
+    let capturedBody;
+    superagent.post.mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        send: jest.fn().mockImplementation((body) => {
+          capturedBody = body;
+          return Promise.resolve({ status: 204 });
+        }),
+      }),
+    });
+
+    await postDataDCR(
+      "https://dce.example.com",
+      "dcr-abc123",
+      "Custom-GitHubMetadata_Repository_v2_input",
+      { id: "1" },
+      "token"
+    );
+
+    expect(JSON.parse(capturedBody)).toEqual([{ id: "1" }]);
+  });
+
+  test("sends Bearer token in Authorization header", async () => {
+    let capturedHeaders;
+    superagent.post.mockReturnValue({
+      set: jest.fn().mockImplementation((headers) => {
+        capturedHeaders = headers;
+        return {
+          send: jest.fn().mockResolvedValue({ status: 204 }),
+        };
+      }),
+    });
+
+    await postDataDCR(
+      "https://dce.example.com",
+      "dcr-abc123",
+      "Custom-GitHubMetadata_Repository_v2_input",
+      {},
+      "my-bearer-token"
+    );
+
+    expect(capturedHeaders.Authorization).toBe("Bearer my-bearer-token");
+    expect(capturedHeaders["Content-Type"]).toBe("application/json");
+  });
+
+  test("throws when response is not 204", async () => {
+    superagent.post.mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        send: jest.fn().mockResolvedValue({ status: 200 }),
+      }),
+    });
+
+    await expect(
+      postDataDCR(
+        "https://dce.example.com",
+        "dcr-abc123",
+        "Custom-GitHubMetadata_Repository_v2_input",
+        {},
+        "token"
+      )
+    ).rejects.toThrow(
+      "Error posting data to DCR dcr-abc123 stream Custom-GitHubMetadata_Repository_v2_input"
+    );
+  });
+
+  test("throws on network error", async () => {
+    const networkError = new Error("Network error");
+    networkError.status = 503;
+
+    superagent.post.mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        send: jest.fn().mockRejectedValue(networkError),
+      }),
+    });
+
+    await expect(
+      postDataDCR(
+        "https://dce.example.com",
+        "dcr-abc123",
+        "Custom-GitHubMetadata_Repository_v2_input",
+        {},
+        "token"
+      )
+    ).rejects.toThrow(
+      "Error posting data to DCR dcr-abc123 stream Custom-GitHubMetadata_Repository_v2_input: 503"
+    );
   });
 });

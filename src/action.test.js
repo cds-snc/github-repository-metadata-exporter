@@ -7,7 +7,12 @@ const { when } = require("jest-when");
 
 const { action } = require("./action.js");
 
-const { postData, uploadToS3 } = require("./lib/forwarder.js");
+const {
+  postData,
+  postDataDCR,
+  getAzureToken,
+  uploadToS3,
+} = require("./lib/forwarder.js");
 const {
   queryActionDependencies,
   queryAllPRs,
@@ -490,5 +495,162 @@ describe("action", () => {
     expect(consoleLogSpy).toHaveBeenCalledWith(
       expect.stringContaining("⚠️ Failed to get Workflows data")
     );
+  });
+
+  test("DCR mode: routes all log types through postDataDCR instead of postData", async () => {
+    const sampleData = { id: "123" };
+    const dcrIds = {
+      Repository: "dcr-repository",
+      BranchProtection: "dcr-branchprotection",
+      CommitCount: "dcr-commitcount",
+      RequiredFiles: "dcr-requiredfiles",
+      DependabotAlerts: "dcr-dependabotalerts",
+      CodeScanningAlerts: "dcr-codescanningalerts",
+      RenovatePRs: "dcr-renovateprs",
+      ActionDependencies: "dcr-actiondependencies",
+    };
+
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-id")
+      .mockReturnValue("");
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-key")
+      .mockReturnValue("");
+    when(core.getInput).calledWith("github-app-id").mockReturnValue("app-id");
+    when(core.getInput)
+      .calledWith("github-app-installation-id")
+      .mockReturnValue("installation-id");
+    when(core.getInput)
+      .calledWith("github-app-private-key")
+      .mockReturnValue("private-key");
+    when(core.getInput)
+      .calledWith("org-data-repo")
+      .mockReturnValue("different/repo");
+    when(core.getInput).calledWith("s3-bucket").mockReturnValue("");
+    when(core.getInput).calledWith("aws-region").mockReturnValue("");
+    when(core.getInput).calledWith("forwarder-mode").mockReturnValue("dcr");
+    when(core.getInput)
+      .calledWith("azure-dce-endpoint")
+      .mockReturnValue("https://dce.example.com");
+    when(core.getInput)
+      .calledWith("azure-dcr-immutable-ids")
+      .mockReturnValue(JSON.stringify(dcrIds));
+    when(core.getInput)
+      .calledWith("azure-tenant-id")
+      .mockReturnValue("test-tenant");
+    when(core.getInput)
+      .calledWith("azure-client-id")
+      .mockReturnValue("test-client");
+    when(core.getInput)
+      .calledWith("azure-oidc-audience")
+      .mockReturnValue("api://AzureADTokenExchange");
+    when(core.getIDToken)
+      .calledWith("api://AzureADTokenExchange")
+      .mockResolvedValue("github-oidc-token");
+
+    when(github.getOctokit).calledWith("token").mockReturnValue("octokit");
+
+    getAzureToken.mockResolvedValue("test-azure-token");
+    postDataDCR.mockResolvedValue(true);
+    uploadToS3.mockResolvedValue(true);
+
+    queryRepository.mockResolvedValue(sampleData);
+    queryAllPRs.mockResolvedValue(sampleData);
+    queryWorkflows.mockResolvedValue(sampleData);
+    queryBranchProtection.mockResolvedValue(sampleData);
+    queryCommits.mockResolvedValue(sampleData);
+    queryRequiredFiles.mockResolvedValue(sampleData);
+    queryDependabotAlerts.mockResolvedValue(sampleData);
+    queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
+    queryRenovatePRs.mockResolvedValue({ renovate_prs: [] });
+    queryActionDependencies.mockResolvedValue(sampleData);
+
+    await action();
+
+    expect(postData).not.toHaveBeenCalled();
+    expect(postDataDCR).toHaveBeenCalledWith(
+      "https://dce.example.com",
+      "dcr-repository",
+      "Custom-GitHubMetadata_Repository_v2_Input",
+      sampleData,
+      "test-azure-token"
+    );
+    expect(getAzureToken).toHaveBeenCalledWith(
+      "test-tenant",
+      "test-client",
+      "github-oidc-token"
+    );
+    expect(postDataDCR).toHaveBeenCalledWith(
+      "https://dce.example.com",
+      "dcr-dependabotalerts",
+      "Custom-GitHubMetadata_DependabotAlerts_v2_Input",
+      sampleData,
+      "test-azure-token"
+    );
+    expect(postDataDCR).toHaveBeenCalledWith(
+      "https://dce.example.com",
+      "dcr-actiondependencies",
+      "Custom-GitHubMetadata_ActionDependencies_v2_Input",
+      sampleData,
+      "test-azure-token"
+    );
+  });
+
+  test("DCR mode: throws when immutable IDs are missing for required log types", async () => {
+    const incompleteDcrIds = { Repository: "dcr-repository" }; // missing 7 types
+
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-id")
+      .mockReturnValue("");
+    when(core.getInput)
+      .calledWith("log-analytics-workspace-key")
+      .mockReturnValue("");
+    when(core.getInput).calledWith("github-app-id").mockReturnValue("app-id");
+    when(core.getInput)
+      .calledWith("github-app-installation-id")
+      .mockReturnValue("installation-id");
+    when(core.getInput)
+      .calledWith("github-app-private-key")
+      .mockReturnValue("private-key");
+    when(core.getInput)
+      .calledWith("org-data-repo")
+      .mockReturnValue("different/repo");
+    when(core.getInput).calledWith("s3-bucket").mockReturnValue("");
+    when(core.getInput).calledWith("aws-region").mockReturnValue("");
+    when(core.getInput).calledWith("forwarder-mode").mockReturnValue("dcr");
+    when(core.getInput)
+      .calledWith("azure-dce-endpoint")
+      .mockReturnValue("https://dce.example.com");
+    when(core.getInput)
+      .calledWith("azure-dcr-immutable-ids")
+      .mockReturnValue(JSON.stringify(incompleteDcrIds));
+    when(core.getInput)
+      .calledWith("azure-tenant-id")
+      .mockReturnValue("test-tenant");
+    when(core.getInput)
+      .calledWith("azure-client-id")
+      .mockReturnValue("test-client");
+    when(core.getInput)
+      .calledWith("azure-oidc-audience")
+      .mockReturnValue("api://AzureADTokenExchange");
+
+    when(github.getOctokit).calledWith("token").mockReturnValue("octokit");
+
+    queryRepository.mockResolvedValue({});
+    queryAllPRs.mockResolvedValue({});
+    queryWorkflows.mockResolvedValue({});
+    queryBranchProtection.mockResolvedValue({});
+    queryCommits.mockResolvedValue({});
+    queryRequiredFiles.mockResolvedValue({});
+    queryDependabotAlerts.mockResolvedValue({});
+    queryCodeScanningAlerts.mockResolvedValue({ code_scanning_alerts: [] });
+    queryRenovatePRs.mockResolvedValue({ renovate_prs: [] });
+    queryActionDependencies.mockResolvedValue({});
+    uploadToS3.mockResolvedValue(true);
+
+    await expect(action()).rejects.toThrow(
+      "DCR mode: missing immutable IDs for log types:"
+    );
+    expect(postDataDCR).not.toHaveBeenCalled();
   });
 });

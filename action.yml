@@ -19,11 +19,30 @@ inputs:
     description: "GitHub App private key to call the GitHub API"
     required: true
   log-analytics-workspace-id:
-    description: "Azure Log Analytics Workspace ID"
-    required: true
+    description: "Azure Log Analytics Workspace ID (legacy forwarder-mode only)"
+    required: false
   log-analytics-workspace-key:
-    description: "Azure Log Analytics Workspace Key"
-    required: true
+    description: "Azure Log Analytics Workspace Key (legacy forwarder-mode only)"
+    required: false
+  forwarder-mode:
+    description: "Forwarding mode: 'legacy' (Log Analytics Data Collector API) or 'dcr' (Log Ingestion API via Data Collection Rules)"
+    required: false
+    default: "legacy"
+  azure-dce-endpoint:
+    description: "Azure Data Collection Endpoint URL, shared across all log types (required when forwarder-mode is 'dcr')"
+    required: false
+  azure-dcr-immutable-ids:
+    description: "JSON map of log-type suffix to DCR immutable ID, e.g. {\"Repository\":\"dcr-xxx\"}. DCRs follow the naming convention 'dcr-github-metadata-[log-type]' (required when forwarder-mode is 'dcr')"
+    required: false
+  azure-tenant-id:
+    description: "Azure tenant ID for DCR authentication (required when forwarder-mode is 'dcr')"
+    required: false
+  azure-client-id:
+    description: "Azure client ID (service principal) for DCR authentication (required when forwarder-mode is 'dcr')"
+    required: false
+  azure-oidc-audience:
+    description: "OIDC audience used when requesting a GitHub ID token for Azure workload identity federation (defaults to 'api://AzureADTokenExchange')"
+    required: false
   org-data-repo:
     description: "{owner}/{repo} that collects org data"
     required: false

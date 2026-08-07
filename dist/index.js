@@ -96054,7 +96054,12 @@ const core = __nccwpck_require__(37484);
 const github = __nccwpck_require__(93228);
 const { createAppAuth } = __nccwpck_require__(98594);
 
-const { postData, uploadToS3 } = __nccwpck_require__(73395);
+const {
+  postData,
+  postDataDCR,
+  getAzureToken,
+  uploadToS3,
+} = __nccwpck_require__(73395);
 const {
   queryActionDependencies,
   queryAllPRs,
@@ -96089,6 +96094,17 @@ const action = async () => {
     "cds-data-lake-raw-production/operations/github";
   const awsRegion = core.getInput("aws-region") || "ca-central-1";
 
+  const forwarderMode = core.getInput("forwarder-mode") || "legacy";
+  const dceEndpoint = core.getInput("azure-dce-endpoint");
+  const dcrImmutableIdsRaw = core.getInput("azure-dcr-immutable-ids");
+  const dcrImmutableIds = dcrImmutableIdsRaw
+    ? JSON.parse(dcrImmutableIdsRaw)
+    : {};
+  const azureTenantId = core.getInput("azure-tenant-id");
+  const azureClientId = core.getInput("azure-client-id");
+  const azureOidcAudience =
+    core.getInput("azure-oidc-audience") || "api://AzureADTokenExchange";
+
   const auth = createAppAuth({
     appId: githubAppId,
     privateKey: githubAppPrivateKey,
@@ -96116,14 +96132,67 @@ const action = async () => {
     }
   }
 
+  // DCR mode: validate that all required log types have a DCR immutable ID
+  if (forwarderMode === "dcr") {
+    if (!dceEndpoint || !azureTenantId || !azureClientId) {
+      throw new Error(
+        "DCR mode requires azure-dce-endpoint, azure-tenant-id, and azure-client-id"
+      );
+    }
+
+    const requiredTypes = [
+      "Repository",
+      "BranchProtection",
+      "CommitCount",
+      "RequiredFiles",
+      "DependabotAlerts",
+      "CodeScanningAlerts",
+      "RenovatePRs",
+      "ActionDependencies",
+    ];
+    if (orgDataRepo === `${owner}/${repo}`) {
+      requiredTypes.push("Users", "Codespaces");
+    }
+    const missing = requiredTypes.filter((t) => !dcrImmutableIds[t]);
+    if (missing.length > 0) {
+      throw new Error(
+        `DCR mode: missing immutable IDs for log types: ${missing.join(", ")}`
+      );
+    }
+  }
+
+  // Unified Azure forwarding: routes to DCR or legacy endpoint based on forwarder-mode
+  let dcrAccessToken = null;
+  async function postToAzure(logTypeSuffix, data) {
+    if (forwarderMode === "dcr") {
+      if (!dcrAccessToken) {
+        const federatedToken = await core.getIDToken(azureOidcAudience);
+        dcrAccessToken = await getAzureToken(
+          azureTenantId,
+          azureClientId,
+          federatedToken
+        );
+      }
+      await postDataDCR(
+        dceEndpoint,
+        dcrImmutableIds[logTypeSuffix],
+        `Custom-GitHubMetadata_${logTypeSuffix}_v2_Input`,
+        data,
+        dcrAccessToken
+      );
+    } else {
+      await postData(
+        logAnalyticsWorkspaceId,
+        logAnalyticsWorkspaceKey,
+        data,
+        prefix + logTypeSuffix
+      );
+    }
+  }
+
   // Get repository data
   const repository = await queryRepository(octokit, owner, repo);
-  await postData(
-    logAnalyticsWorkspaceId,
-    logAnalyticsWorkspaceKey,
-    repository,
-    prefix + "Repository"
-  );
+  await postToAzure("Repository", repository);
   console.log("✅ Repository data sent to Azure Log Analytics");
 
   // Get all PRs modified today and write to S3 only
@@ -96153,12 +96222,7 @@ const action = async () => {
     repo,
     "main"
   );
-  await postData(
-    logAnalyticsWorkspaceId,
-    logAnalyticsWorkspaceKey,
-    branchProtectionData,
-    prefix + "BranchProtection"
-  );
+  await postToAzure("BranchProtection", branchProtectionData);
   console.log("✅ BranchProtection data sent to Azure Log Analytics");
 
   // Get commit data
@@ -96166,23 +96230,13 @@ const action = async () => {
   const commitData = await queryCommits(octokit, owner, repo);
   const { commits, ...commitCounts } = commitData; // eslint-disable-line no-unused-vars
   const { commit_count, ...commitsFull } = commitData; // eslint-disable-line no-unused-vars
-  await postData(
-    logAnalyticsWorkspaceId,
-    logAnalyticsWorkspaceKey,
-    commitCounts,
-    prefix + "CommitCount"
-  );
+  await postToAzure("CommitCount", commitCounts);
   console.log("✅ CommitCount data sent to Azure Log Analytics");
   await sendToS3(commitsFull, "Commits");
 
   // Get required files data for current branch
   const requiredFilesData = await queryRequiredFiles(owner, repo);
-  await postData(
-    logAnalyticsWorkspaceId,
-    logAnalyticsWorkspaceKey,
-    requiredFilesData,
-    prefix + "RequiredFiles"
-  );
+  await postToAzure("RequiredFiles", requiredFilesData);
   console.log("✅ RequiredFiles data sent to Azure Log Analytics");
 
   // Get dependabot alerts data for current branch
@@ -96191,12 +96245,7 @@ const action = async () => {
     owner,
     repo
   );
-  await postData(
-    logAnalyticsWorkspaceId,
-    logAnalyticsWorkspaceKey,
-    dependabotAlertsData,
-    prefix + "DependabotAlerts"
-  );
+  await postToAzure("DependabotAlerts", dependabotAlertsData);
   console.log("✅ DependabotAlerts data sent to Azure Log Analytics");
   await sendToS3(dependabotAlertsData, "DependabotAlerts");
 
@@ -96217,12 +96266,10 @@ const action = async () => {
       code_scanning_alerts: chunk,
     };
 
-    await postData(
-      logAnalyticsWorkspaceId,
-      logAnalyticsWorkspaceKey,
-      { ...codeScanningAlertsData, ...data },
-      prefix + "CodeScanningAlerts"
-    );
+    await postToAzure("CodeScanningAlerts", {
+      ...codeScanningAlertsData,
+      ...data,
+    });
     console.log(
       `⏱️ ${chunk.length} code scanning alerts sent to Azure Log Analytics.`
     );
@@ -96244,24 +96291,14 @@ const action = async () => {
       renovate_prs: chunk,
     };
 
-    await postData(
-      logAnalyticsWorkspaceId,
-      logAnalyticsWorkspaceKey,
-      { ...renovatePRsData, ...data },
-      prefix + "RenovatePRs"
-    );
+    await postToAzure("RenovatePRs", { ...renovatePRsData, ...data });
     console.log(`⏱️ ${chunk.length} renovate PRs sent to Azure Log Analytics.`);
   }
   console.log("✅ RenovatePRs data sent to Azure Log Analytics");
 
   // Get required files data for current branch
   const actionDependenciesData = await queryActionDependencies(owner, repo);
-  await postData(
-    logAnalyticsWorkspaceId,
-    logAnalyticsWorkspaceKey,
-    actionDependenciesData,
-    prefix + "ActionDependencies"
-  );
+  await postToAzure("ActionDependencies", actionDependenciesData);
   console.log("✅ ActionDependencies data sent to Azure Log Analytics");
 
   // Get central repository data if current repo is org data repo
@@ -96280,12 +96317,7 @@ const action = async () => {
         users: chunk,
       };
 
-      await postData(
-        logAnalyticsWorkspaceId,
-        logAnalyticsWorkspaceKey,
-        { ...usersData, ...data },
-        prefix + "Users"
-      );
+      await postToAzure("Users", { ...usersData, ...data });
       console.log(`⏱️ ${chunk.length} users sent to Azure Log Analytics.`);
     }
     console.log("✅ Users data sent to Azure Log Analytics");
@@ -96302,12 +96334,7 @@ const action = async () => {
         codespaces: chunk,
       };
 
-      await postData(
-        logAnalyticsWorkspaceId,
-        logAnalyticsWorkspaceKey,
-        { ...codespacesData, ...data },
-        prefix + "Codespaces"
-      );
+      await postToAzure("Codespaces", { ...codespacesData, ...data });
       console.log(`⏱️ ${chunk.length} codespaces sent to Azure Log Analytics.`);
     }
     console.log("✅ Codespaces data sent to Azure Log Analytics");
@@ -96426,9 +96453,87 @@ async function uploadToS3(bucket, key, data, awsRegion = "ca-central-1") {
   }
 }
 
+let _cachedToken = null;
+let _tokenExpiry = 0;
+
+const getAzureToken = async (tenantId, clientId, federatedToken) => {
+  if (_cachedToken && Date.now() < _tokenExpiry) {
+    return _cachedToken;
+  }
+
+  const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+  const params = new URLSearchParams({
+    grant_type: "client_credentials",
+    client_id: clientId,
+    client_assertion_type:
+      "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+    client_assertion: federatedToken,
+    scope: "https://monitor.azure.com/.default",
+  });
+
+  try {
+    const response = await superagent
+      .post(tokenUrl)
+      .set("Content-Type", "application/x-www-form-urlencoded")
+      .send(params.toString());
+    if (response.status !== 200) {
+      throw response;
+    }
+    const expiresIn = response.body.expires_in || 3600;
+    _cachedToken = response.body.access_token;
+    _tokenExpiry = Date.now() + (expiresIn - 60) * 1000;
+    return _cachedToken;
+  } catch (error) {
+    throw new Error(`Failed to get Azure token: ${error.status}`);
+  }
+};
+
+const postDataDCR = async (
+  dceEndpoint,
+  dcrImmutableId,
+  streamName,
+  body,
+  token
+) => {
+  const jsonBody = jsonEscapeUTF(
+    JSON.stringify(Array.isArray(body) ? body : [body])
+  );
+  const url = `${dceEndpoint}/dataCollectionRules/${dcrImmutableId}/streams/${streamName}?api-version=2023-01-01`;
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+
+  try {
+    const response = await superagent.post(url).set(headers).send(jsonBody);
+    if (response.status !== 204) {
+      throw response;
+    }
+  } catch (error) {
+    const status = error.status || error.response?.status || "unknown";
+    const rawDetail =
+      error.response?.body ||
+      error.response?.text ||
+      error.text ||
+      error.message ||
+      "no detail";
+    let detail =
+      typeof rawDetail === "string" ? rawDetail : JSON.stringify(rawDetail);
+    if (detail.length > 1200) {
+      detail = `${detail.slice(0, 1200)}...`;
+    }
+    throw new Error(
+      `Error posting data to DCR ${dcrImmutableId} stream ${streamName}: ${status}. ${detail}`
+    );
+  }
+  return true;
+};
+
 module.exports = {
   jsonEscapeUTF: jsonEscapeUTF,
   postData: postData,
+  postDataDCR: postDataDCR,
+  getAzureToken: getAzureToken,
   uploadToS3: uploadToS3,
 };
 
