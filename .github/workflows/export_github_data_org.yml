@@ -7,6 +7,9 @@ on:
 jobs:
   export-data:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Audit DNS requests
         uses: cds-snc/dns-proxy-action@main
