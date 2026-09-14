@@ -1,6 +1,6 @@
 {
 	"name": "github-repository-metadata-exporter",
-	"image": "mcr.microsoft.com/vscode/devcontainers/base:bullseye@sha256:c4a714ff46f28f8502a69d18756b5d9d7e49c2cc3e5ca166b5f74ff80d1792d0",
+	"image": "mcr.microsoft.com/vscode/devcontainers/base:bullseye@sha256:d233ca1cefb8829b5a474659dc32537652772d702bdc49a20f366eedf588da35",
 	"features": {
 		"node": {
 			"version": "lts"
