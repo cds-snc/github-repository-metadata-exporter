@@ -12,7 +12,7 @@ jobs:
       contents: read
     steps:
       - name: Audit DNS requests
-        uses: cds-snc/dns-proxy-action@a8e796fc4b02d21d73acb2d2e999f983fea7dd72 # main
+        uses: cds-snc/dns-proxy-action@4e02f2c42af59569b3bc131e574a9fbce581cadc # main
         env:
           DNS_PROXY_FORWARDTOSENTINEL: "true"
           DNS_PROXY_LOGANALYTICSWORKSPACEID: ${{ secrets.LOG_ANALYTICS_WORKSPACE_ID }}
