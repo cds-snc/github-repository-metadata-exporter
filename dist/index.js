@@ -57059,10 +57059,60 @@ module.exports = {
 "use strict";
 
 
+var getSideChannel = __nccwpck_require__(94753);
 var utils = __nccwpck_require__(25225);
 
 var has = Object.prototype.hasOwnProperty;
 var isArray = Array.isArray;
+var getPrototypeOf = Object.getPrototypeOf;
+
+var isPlainContainer = function isPlainContainer(value) {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+    if (isArray(value)) {
+        return true;
+    }
+    var proto = getPrototypeOf(value);
+    return proto === Object.prototype || proto === null;
+};
+
+var emptyCopyOf = function emptyCopyOf(value) {
+    if (isArray(value)) {
+        var arr = [];
+        arr.length = value.length;
+        return arr;
+    }
+    return getPrototypeOf(value) === null ? { __proto__: null } : {};
+};
+
+// `merge` and `compact` modify the containers they are given, so copy the caller's arrays and plain objects first
+var copyInput = function copyInput(input) {
+    var copies = getSideChannel();
+    var result = {};
+    var queue = [{ source: input, target: result }];
+
+    for (var i = 0; i < queue.length; ++i) {
+        var source = queue[i].source;
+        var target = queue[i].target;
+        var keys = Object.keys(source);
+        for (var j = 0; j < keys.length; ++j) {
+            var value = source[keys[j]];
+            if (isPlainContainer(value)) {
+                if (!copies.has(value)) {
+                    var copy = emptyCopyOf(value);
+                    copies.set(value, copy);
+                    queue[queue.length] = { source: value, target: copy };
+                }
+                target[keys[j]] = copies.get(value);
+            } else {
+                target[keys[j]] = value;
+            }
+        }
+    }
+
+    return result;
+};
 
 var defaults = {
     allowDots: false,
@@ -57171,6 +57221,9 @@ var parseValues = function parseQueryStringValues(str, options) {
         var bracketEqualsPos = part.indexOf(']=');
         var pos = bracketEqualsPos === -1 ? part.indexOf('=') : bracketEqualsPos + 1;
 
+        // `[]` belongs to the key, so look for it at the split point, not anywhere in the part
+        var isEmptyBracketKey = pos > 1 && part.slice(pos - 2, pos) === '[]';
+
         var key;
         var val;
         if (pos === -1) {
@@ -57197,7 +57250,7 @@ var parseValues = function parseQueryStringValues(str, options) {
             val = interpretNumericEntities(String(val));
         }
 
-        if (part.indexOf('[]=') > -1) {
+        if (isEmptyBracketKey) {
             val = isArray(val) ? [val] : val;
         }
 
@@ -57207,7 +57260,7 @@ var parseValues = function parseQueryStringValues(str, options) {
 
         if (key !== null) {
             var existing = has.call(obj, key);
-            if (existing && (options.duplicates === 'combine' || part.indexOf('[]=') > -1)) {
+            if (existing && (options.duplicates === 'combine' || isEmptyBracketKey)) {
                 obj[key] = utils.combine(
                     obj[key],
                     val,
@@ -57283,10 +57336,47 @@ var parseObject = function (chain, val, options, valuesParsed) {
     return leaf;
 };
 
+// Behaves like `key.replace(/\.([^.[]+)/g, '[$1]')`, but only rewrites a dot
+// that sits at bracket depth 0. A literal dot already inside a `[...]` segment
+// is left untouched instead of corrupting the key (e.g. "outer[a.b]"). (#617)
+var topLevelDotsToBrackets = function topLevelDotsToBrackets(key) {
+    var result = '';
+    var depth = 0;
+    for (var i = 0; i < key.length; i += 1) {
+        var cu = key.charCodeAt(i);
+        if (cu === 0x5B) { // '['
+            depth += 1;
+            result += '[';
+        } else if (cu === 0x5D) { // ']'
+            if (depth > 0) {
+                depth -= 1;
+            }
+            result += ']';
+        } else if (
+            cu === 0x2E // '.'
+            && depth === 0
+            && i + 1 < key.length
+            && key.charCodeAt(i + 1) !== 0x2E // not another '.'
+            && key.charCodeAt(i + 1) !== 0x5B // not '['
+        ) {
+            var start = i + 1;
+            var j = start;
+            while (j < key.length && key.charCodeAt(j) !== 0x2E && key.charCodeAt(j) !== 0x5B) {
+                j += 1;
+            }
+            result += '[' + key.slice(start, j) + ']';
+            i = j - 1;
+        } else {
+            result += key.charAt(i);
+        }
+    }
+    return result;
+};
+
 // Split a key like "a[b][c[]]" into ['a', '[b]', '[c[]]'] while preserving
 // qs parse semantics for depth/prototype guards.
 var splitKeyIntoSegments = function splitKeyIntoSegments(originalKey, options) {
-    var key = options.allowDots ? originalKey.replace(/\.([^.[]+)/g, '[$1]') : originalKey;
+    var key = options.allowDots ? topLevelDotsToBrackets(originalKey) : originalKey;
 
     // depth <= 0 keeps the whole key as one segment
     if (options.depth <= 0) {
@@ -57452,7 +57542,7 @@ module.exports = function (str, opts) {
         return options.plainObjects ? { __proto__: null } : {};
     }
 
-    var tempObj = typeof str === 'string' ? parseValues(str, options) : str;
+    var tempObj = typeof str === 'string' ? parseValues(str, options) : copyInput(str);
     var obj = options.plainObjects ? { __proto__: null } : {};
 
     // Iterate over the keys and setup the new object
@@ -57630,10 +57720,10 @@ var stringify = function stringify(
         // we need to join elements in
         if (encodeValuesOnly && encoder) {
             obj = utils.maybeMap(obj, function (v) {
-                return v == null ? v : encoder(v);
+                return v == null ? v : encoder(v, defaults.encoder, charset, 'value', format);
             });
         }
-        objKeys = [{ value: obj.length > 0 ? obj.join(',') || null : void undefined }];
+        objKeys = [{ value: obj.length > 0 ? utils.toCoercible(obj).join(',') || null : void undefined }];
     } else if (isArray(filter)) {
         objKeys = filter;
     } else {
@@ -57641,7 +57731,7 @@ var stringify = function stringify(
         objKeys = sort ? keys.sort(sort) : keys;
     }
 
-    var encodedPrefix = encodeDotInKeys ? String(prefix).replace(/\./g, '%2E') : String(prefix);
+    var encodedPrefix = String(prefix);
 
     var adjustedPrefix = commaRoundTrip && isArray(obj) && obj.length === 1 ? encodedPrefix + '[]' : encodedPrefix;
 
@@ -57731,7 +57821,7 @@ var normalizeStringifyOptions = function normalizeStringifyOptions(opts) {
     }
 
     var arrayFormat;
-    if (opts.arrayFormat in arrayPrefixGenerators) {
+    if (has.call(arrayPrefixGenerators, opts.arrayFormat)) {
         arrayFormat = opts.arrayFormat;
     } else if ('indices' in opts) {
         arrayFormat = opts.indices ? 'indices' : 'repeat';
@@ -57894,6 +57984,23 @@ var setMaxIndex = function setMaxIndex(obj, maxIndex) {
     overflowChannel.set(obj, maxIndex);
 };
 
+// Track containers produced by a `strictMerge` conflict wrap, and their current max numeric index,
+// so repeated conflicts on one path append instead of nesting a new wrapper each time
+var conflictChannel = getSideChannel();
+
+var markConflict = function markConflict(obj, maxIndex) {
+    conflictChannel.set(obj, maxIndex);
+    return obj;
+};
+
+var isConflict = function isConflict(obj) {
+    return conflictChannel.has(obj);
+};
+
+var getConflictIndex = function getConflictIndex(obj) {
+    return conflictChannel.get(obj);
+};
+
 var hexTable = (function () {
     var array = [];
     for (var i = 0; i < 256; ++i) {
@@ -57946,6 +58053,30 @@ var setProperty = function setProperty(obj, key, value) {
     }
 };
 
+var maxNumericIndex = function maxNumericIndex(obj, min) {
+    var max = min;
+    var keys = Object.keys(obj);
+    for (var i = 0; i < keys.length; ++i) {
+        var num = parseInt(keys[i], 10);
+        if (String(num) === keys[i] && num > max) {
+            max = num;
+        }
+    }
+
+    return max;
+};
+
+var limitedPair = function limitedPair(first, second, options) {
+    var pair = [first, second];
+    if (options && typeof options.arrayLimit === 'number' && pair.length > options.arrayLimit) {
+        if (options.throwOnLimitExceeded) {
+            throw new RangeError('Array limit exceeded. Only ' + options.arrayLimit + ' element' + (options.arrayLimit === 1 ? '' : 's') + ' allowed in an array.');
+        }
+        return markOverflow(arrayToObject(pair, options), 1);
+    }
+    return pair;
+};
+
 var merge = function merge(target, source, options) {
     /* eslint no-param-reassign: 0 */
     if (!source) {
@@ -57968,8 +58099,20 @@ var merge = function merge(target, source, options) {
                 var newIndex = getMaxIndex(target) + 1;
                 target[newIndex] = source;
                 setMaxIndex(target, newIndex);
+            } else if (options && options.strictMerge && isConflict(target)) {
+                var nextConflict = getConflictIndex(target) + 1;
+                if (
+                    options.throwOnLimitExceeded
+                    && typeof options.arrayLimit === 'number'
+                    && nextConflict >= options.arrayLimit
+                ) {
+                    throw new RangeError('Array limit exceeded. Only ' + options.arrayLimit + ' element' + (options.arrayLimit === 1 ? '' : 's') + ' allowed in an array.');
+                }
+                target[nextConflict] = source;
+                markConflict(target, nextConflict);
             } else if (options && options.strictMerge) {
-                return [target, source];
+                var conflict = limitedPair(target, source, options);
+                return isArray(conflict) ? markConflict(conflict, 1) : conflict;
             } else if (
                 (options && (options.plainObjects || options.allowPrototypes))
                 || !has.call(Object.prototype, source)
@@ -57977,7 +58120,7 @@ var merge = function merge(target, source, options) {
                 target[source] = true;
             }
         } else {
-            return [target, source];
+            return limitedPair(target, source, options);
         }
 
         return target;
@@ -58009,6 +58152,10 @@ var merge = function merge(target, source, options) {
     var mergeTarget = target;
     if (isArray(target) && !isArray(source)) {
         mergeTarget = arrayToObject(target, options);
+        if (isConflict(target)) {
+            // the array may have grown past its last conflict, so continue after its last index
+            markConflict(mergeTarget, target.length - 1);
+        }
     }
 
     if (isArray(target) && isArray(source)) {
@@ -58043,12 +58190,18 @@ var merge = function merge(target, source, options) {
         }
 
         if (isOverflow(source) && !isOverflow(acc)) {
-            markOverflow(acc, getMaxIndex(source));
+            markOverflow(acc, maxNumericIndex(acc, getMaxIndex(source)));
         }
         if (isOverflow(acc)) {
             var keyNum = parseInt(key, 10);
             if (String(keyNum) === key && keyNum >= 0 && keyNum > getMaxIndex(acc)) {
                 setMaxIndex(acc, keyNum);
+            }
+        }
+        if (isConflict(acc)) {
+            var conflictKey = parseInt(key, 10);
+            if (String(conflictKey) === key && conflictKey > getConflictIndex(acc)) {
+                markConflict(acc, conflictKey);
             }
         }
 
@@ -58064,6 +58217,13 @@ var assign = function assignSingleSource(target, source) {
 };
 
 var decode = function (str, defaultDecoder, charset) {
+    // With no `%` there is no escape to expand, in either charset: `unescape` has
+    // nothing to match, and `decodeURIComponent` is the identity on such a string
+    // (and cannot throw). So only `+` -> ' ' remains, and often not even that.
+    if (typeof str === 'string' && str.indexOf('%') === -1) {
+        return str.indexOf('+') === -1 ? str : str.replace(/\+/g, ' ');
+    }
+
     var strWithoutPlus = str.replace(/\+/g, ' ');
     if (charset === 'iso-8859-1') {
         // unescape never throws, no try...catch needed:
@@ -58075,6 +58235,57 @@ var decode = function (str, defaultDecoder, charset) {
     } catch (e) {
         return strWithoutPlus;
     }
+};
+
+var hasToPrimitive = typeof Symbol === 'function' && typeof Symbol.toPrimitive === 'symbol';
+var arrayJoin = Array.prototype.join;
+var arrayToString = Array.prototype.toString;
+var objectToString = Object.prototype.toString;
+
+// an object with no callable toString (eg, from JSON, or null-prototype) would make String() or join() throw,
+// so it becomes its primitive valueOf or else Object.prototype.toString; arrays are walked like join walks them,
+// copied only once an element changes, with an array already being joined becoming '' as engines do for cycles
+var toCoercible = function toCoercible(value, joining) {
+    if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
+        return value;
+    }
+    if (hasToPrimitive && value[Symbol.toPrimitive] != null) {
+        return value;
+    }
+    if (isArray(value) && value.toString === arrayToString && value.join === arrayJoin) {
+        var ancestors = joining || getSideChannel();
+        if (ancestors.has(value)) {
+            return '';
+        }
+        ancestors.set(value, true);
+        var copy;
+        for (var i = 0; i < value.length; i += 1) {
+            var item = value[i];
+            var coerced = toCoercible(item, ancestors);
+            if (!copy && coerced !== item) {
+                copy = [];
+                for (var j = 0; j < i; j += 1) {
+                    copy[j] = value[j];
+                }
+            }
+            if (copy) {
+                copy[i] = coerced;
+            }
+        }
+        ancestors['delete'](value);
+        return copy || value;
+    }
+    if (typeof value.toString === 'function') {
+        return value;
+    }
+    var valueOf = value.valueOf;
+    if (typeof valueOf === 'function') {
+        var primitive = valueOf.call(value);
+        if (!primitive || (typeof primitive !== 'object' && typeof primitive !== 'function')) {
+            return String(primitive);
+        }
+    }
+    return objectToString.call(value);
 };
 
 var limit = 1024;
@@ -58092,13 +58303,15 @@ var encode = function encode(str, defaultEncoder, charset, kind, format) {
     if (typeof str === 'symbol') {
         string = Symbol.prototype.toString.call(str);
     } else if (typeof str !== 'string') {
-        string = String(str);
+        string = String(toCoercible(str));
     }
 
     if (charset === 'iso-8859-1') {
+        // `escape` leaves `+` untouched, but a literal `+` is decoded back to a space,
+        // so it must be percent-encoded to round-trip (the utf-8 path already does this).
         return escape(string).replace(/%u[0-9a-f]{4}/gi, function ($0) {
             return '%26%23' + parseInt($0.slice(2), 16) + '%3B';
-        });
+        }).replace(/\+/g, '%2B');
     }
 
     var out = '';
@@ -58250,7 +58463,8 @@ module.exports = {
     isRegExp: isRegExp,
     markOverflow: markOverflow,
     maybeMap: maybeMap,
-    merge: merge
+    merge: merge,
+    toCoercible: toCoercible
 };
 
 
